@@ -1,0 +1,21 @@
+# Python 3 specific 
+Modules/__pycache__/
+
+# Project Specific
+# Modules/developmental/
+# OldDataBases/
+# RawData_csv/
+# BT4D_Market_Mix_Results/
+# RawData_Mirror.bat
+# HRT_6500_Validation_JustInCase.db
+# dicts_HRT_6500_Validation.txt
+
+# Eclipse PyDev
+.metadata/
+*/.project
+*/.pydevproject
+Modules/.settings/
+
+# Jupyter Notebook Stuff
+*/.ipynb_checkpoints
+*.ipynb
