@@ -2,7 +2,6 @@ import math
 import os
 import platform
 import re
-
 import numpy as np
 import pandas as pd
 
@@ -99,20 +98,26 @@ df_samplelog['DateTime'] = pd.to_datetime(df_samplelog['DateTime'], format="%m/%
 
 # print(df_samplelog[(df_samplelog['Type'] == 'Detector Measurement') & (df_samplelog['Status'] == 'Done')][['DateTime','Type','DetectorVoltage','TuneAreaCounts']])
 test_series = df_samplelog.apply(LinkIonStats, args=(df_logfile.dropna(subset=['DetectorVoltage']),), axis=1)
-print(df_logfile.dropna(subset=['DetectorVoltage']))
+# print(df_logfile.dropna(subset=['DetectorVoltage']))
 
-print('\n\n')
+# print('\n\n')
 
 # make a pair of lists, then convert the lists to a series and add each as new columns to the df
-
+dv = []
+tac = []
 for index in test_series.iteritems():
     if not math.isnan(index[1]):
         df_logfile_index = int(index[1])
 #         df_samplelog['DetectorVoltage'].iloc[index[0]] = df_logfile.at[df_logfile_index,'DetectorVoltage']
 #         df_samplelog['TuneAreaCounts'].iloc[index[0]] = df_logfile.at[df_logfile_index,'TuneAreaCounts']
-#     else:
-#         pass
-        # append nan 
+        dv.append(df_logfile.at[df_logfile_index,'DetectorVoltage'])
+        tac.append(df_logfile.at[df_logfile_index,'TuneAreaCounts'])
+    else:
+        dv.append(np.nan)
+        tac.append(np.nan)
         
+df_samplelog['DetectorVoltage'] = pd.Series(dv)
+df_samplelog['TuneAreaCounts'] = pd.Series(tac)
 
-print(df_samplelog.dropna(subset=['DetectorVoltage']))
+# print(df_samplelog[df_samplelog['Type'] == "Detector Measurement"])
+print(df_logfile[df_logfile['Object'] == 'Gain Optimization v5'][['Time','Action']].head(100))
