@@ -4,6 +4,7 @@ import platform
 import re
 import numpy as np
 import pandas as pd
+import datetime
 
 
 def parce_DM_IonStatistics(row, stringPattern):
@@ -41,10 +42,19 @@ def Convert12hrto24hrTime(row):
 
 
 def LinkIonStats(row, df_ionstats):
-    if row['Type'] == 'Detector Measurement' and row['Status'] == 'Done':
-        df_ionstats = df_ionstats.dropna(subset=['DetectorVoltage'])
+    if (row['Type'] == 'Detector Measurement' or row['Type'] == 'Gain Optimization') and row['Status'] == 'Done':
         df_ionstats['TimeDelta'] = abs(row['DateTime'] - df_ionstats['Time'])
-        return df_ionstats['TimeDelta'].idxmin()
+        
+#         print(row[['DateTime','Type',]])
+#         print(df_ionstats['TimeDelta'].min())
+#         print()
+        # If the smallest time difference is more than 3 minutes than the data is missing
+        # from the logfile and this alogrithm will provide the wrong index link
+        # The following conditional statement prevents this.
+        if df_ionstats['TimeDelta'].min() > datetime.timedelta(minutes=3):
+            return np.nan
+        else:
+            return df_ionstats['TimeDelta'].idxmin()
     else:
         return np.nan
         
@@ -98,11 +108,7 @@ df_logfile[['DetectorVoltage','TuneAreaCounts']] = df_logfile[['DetectorVoltage'
 # converting the time column to datetime dtype
 df_logfile['Time'] = pd.to_datetime(df_logfile['Time'], format="%m/%d/%Y %H:%M")
 
-
-print(df_logfile[['Time', 'Object', 'DetectorVoltage','TuneAreaCounts']].dropna())
-exit()
-
-
+df_logfile.dropna(subset=['DetectorVoltage'], inplace=True)
 
 
 # ----------------
@@ -117,13 +123,9 @@ df_samplelog['DateTime'] = pd.to_datetime(df_samplelog['DateTime'], format="%m/%
 
 # ----------------
 # link ion stats to detector measurement
-# df_samplelog['DetectorVoltage'] = np.nan
-# df_samplelog['TuneAreaCounts'] = np.nan
-
-# print(df_logfile.dropna(subset=['DetectorVoltage']))
 
 # print(df_samplelog[(df_samplelog['Type'] == 'Detector Measurement') & (df_samplelog['Status'] == 'Done')][['DateTime','Type','DetectorVoltage','TuneAreaCounts']])
-test_series = df_samplelog.apply(LinkIonStats, args=(df_logfile.dropna(subset=['DetectorVoltage']),), axis=1)
+index_series = df_samplelog.apply(LinkIonStats, args=(df_logfile.copy(),), axis=1)
 # print(df_logfile.dropna(subset=['DetectorVoltage']))
 
 # print('\n\n')
@@ -131,11 +133,9 @@ test_series = df_samplelog.apply(LinkIonStats, args=(df_logfile.dropna(subset=['
 # make a pair of lists, then convert the lists to a series and add each as new columns to the df
 dv = []
 tac = []
-for index in test_series.iteritems():
+for index in index_series.iteritems():
     if not math.isnan(index[1]):
         df_logfile_index = int(index[1])
-#         df_samplelog['DetectorVoltage'].iloc[index[0]] = df_logfile.at[df_logfile_index,'DetectorVoltage']
-#         df_samplelog['TuneAreaCounts'].iloc[index[0]] = df_logfile.at[df_logfile_index,'TuneAreaCounts']
         dv.append(df_logfile.at[df_logfile_index,'DetectorVoltage'])
         tac.append(df_logfile.at[df_logfile_index,'TuneAreaCounts'])
     else:
@@ -146,4 +146,5 @@ df_samplelog['DetectorVoltage'] = pd.Series(dv)
 df_samplelog['TuneAreaCounts'] = pd.Series(tac)
 
 # print(df_samplelog[df_samplelog['Type'] == "Detector Measurement"])
-print(df_logfile[df_logfile['Object'] == 'Gain Optimization v5'][['Time','Action']].head(100))
+print(df_logfile[['Time','Object','Action']])
+print(df_samplelog[['DateTime','Type','DetectorVoltage','TuneAreaCounts']][(df_samplelog['Type'] == 'Gain Optimization') | (df_samplelog['Type'] == 'Detector Measurement')])
