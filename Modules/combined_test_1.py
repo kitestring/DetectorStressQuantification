@@ -62,8 +62,8 @@ def LinkIonStats(row, df_ionstats):
 
 # ----------------
 # read csv files
-log_csv_file = 'SystemLog_V5_Filtered_Test1.csv'
-sample_csv_file = 'SampleLog_Test_1.csv'
+log_csv_file = 'PV1_SystemLog_V5_Filtered_Test2.csv'
+sample_csv_file = 'PV1_SampleLog_Test_2.csv'
 if platform.system() == 'Windows':
     fp1 = os.path.join('C:\\DetectorStressQuantification\\txtFiles', log_csv_file)
     fp2 = os.path.join('C:\\DetectorStressQuantification\\txtFiles', sample_csv_file)
@@ -76,7 +76,7 @@ df_samplelog = pd.read_csv(fp2)
 
 
 # ----------------
-# clean log df
+# clean df_logfile
 
 # Extract Ion statistics from Detector Measurements
 DM_IonStats_Series = df_logfile.apply(parce_DM_IonStatistics, args=("Voltage=.*AreaPerIon=.*",), axis=1)
@@ -91,12 +91,9 @@ for i in GO_index:
     while compiled.match(df_logfile['Action'].iloc[i+x])  == None:
         x += 1
     
-    
     split_result = df_logfile.at[i+x,'Action'].split(' ')
     DM_IonStats_lst[i+x] = split_result[0].replace('Voltage=','') + ',' + split_result[1].replace('AreaPerIon=','')
     
-
-
 # Add IonStats list to df_logfile as two new columns: DetectorVoltage , TuneAreaCounts then change type to float64 
 temp_df = pd.Series(DM_IonStats_lst).str.split(pat=',', expand=True)
 temp_df.columns = ['DetectorVoltage', 'TuneAreaCounts']
@@ -104,15 +101,15 @@ df_logfile = pd.concat([df_logfile, temp_df], axis=1)
 df_logfile.replace(to_replace='False', value=np.nan, inplace=True)
 df_logfile[['DetectorVoltage','TuneAreaCounts']] = df_logfile[['DetectorVoltage','TuneAreaCounts']].astype(dtype='float64')
 
-
 # converting the time column to datetime dtype
 df_logfile['Time'] = pd.to_datetime(df_logfile['Time'], format="%m/%d/%Y %H:%M")
 
+# Drop all rows that do not have ion statistics information
 df_logfile.dropna(subset=['DetectorVoltage'], inplace=True)
 
 
 # ----------------
-# clean sample df
+# clean df_samplelog
 
 df_samplelog['Time24'] = df_samplelog.apply(Convert12hrto24hrTime, axis=1)
 
@@ -124,13 +121,12 @@ df_samplelog['DateTime'] = pd.to_datetime(df_samplelog['DateTime'], format="%m/%
 # ----------------
 # link ion stats to detector measurement
 
-# print(df_samplelog[(df_samplelog['Type'] == 'Detector Measurement') & (df_samplelog['Status'] == 'Done')][['DateTime','Type','DetectorVoltage','TuneAreaCounts']])
+# For the resulting series, it's index will match that of the df_samplelog, the values will either be np.nan
+# where no link is made.  However were there is a value it will be the df_logfile index that corresponds to
+# the row in the df_samplelog.
 index_series = df_samplelog.apply(LinkIonStats, args=(df_logfile.copy(),), axis=1)
-# print(df_logfile.dropna(subset=['DetectorVoltage']))
 
-# print('\n\n')
-
-# make a pair of lists, then convert the lists to a series and add each as new columns to the df
+# make a pair of lists, then convert the lists to a series and add each as new columns to the df_samplelog
 dv = []
 tac = []
 for index in index_series.iteritems():
@@ -145,6 +141,19 @@ for index in index_series.iteritems():
 df_samplelog['DetectorVoltage'] = pd.Series(dv)
 df_samplelog['TuneAreaCounts'] = pd.Series(tac)
 
-# print(df_samplelog[df_samplelog['Type'] == "Detector Measurement"])
-print(df_logfile[['Time','Object','Action']])
-print(df_samplelog[['DateTime','Type','DetectorVoltage','TuneAreaCounts']][(df_samplelog['Type'] == 'Gain Optimization') | (df_samplelog['Type'] == 'Detector Measurement')])
+# Drop unnecessary columns from the df_samplelog
+df_samplelog.drop(columns=['QC Method', 'Folder', 'Date', 'Time', 'Time24', 'Vial', 'AS Method', 'Update Calibration', 'Cal. Std. to Replace'], inplace=True)
+
+
+# PV1 time range for OFN +0 Volts --> 06/07/2018 10:19:56 AM - 06/08/2018 5:56:56 AM
+# PV2 time range for OFN +0 Volts --> 06/07/2018 11:27:52 AM - 06/08/2018 4:13:57 AM
+
+# Slice DataFrame by datetime to only include the 
+# df_test = df_samplelog[['DateTime','Type','Name','DetectorVoltage','TuneAreaCounts']].loc[(df_samplelog['DateTime'] >= pd.to_datetime('06/07/2018 11:27:52', format="%m/%d/%Y %H:%M:%S")) & (df_samplelog['DateTime'] <= pd.to_datetime('06/08/2018 4:13:57', format="%m/%d/%Y %H:%M:%S"))]
+df_test = df_samplelog[['DateTime','Type','Name','DetectorVoltage','TuneAreaCounts']].loc[(df_samplelog['DateTime'] >= pd.to_datetime('06/07/2018 10:19:56', format="%m/%d/%Y %H:%M:%S")) & (df_samplelog['DateTime'] <= pd.to_datetime('06/08/2018 5:56:56', format="%m/%d/%Y %H:%M:%S"))]
+print(df_test[['DateTime','Name','DetectorVoltage','TuneAreaCounts']][(df_test['Type'] == 'Detector Measurement') | (df_test['Type'] == 'Gain Optimization')])
+
+
+
+
+
