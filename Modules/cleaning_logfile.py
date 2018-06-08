@@ -43,5 +43,4 @@ df_logfile[['DetectorVoltage','TuneAreaCounts']] = df_logfile[['DetectorVoltage'
 # converting the time column to datetime dtype
 df_logfile['Time'] = pd.to_datetime(df_logfile['Time'], format="%m/%d/%Y %H:%M")
 
-print(df_logfile[['Time', 'DetectorVoltage', 'TuneAreaCounts']][df_logfile['DetectorVoltage'] not is np.nan])
 print(df_logfile.info())

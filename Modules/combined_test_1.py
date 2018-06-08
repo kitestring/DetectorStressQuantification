@@ -67,16 +67,42 @@ df_samplelog = pd.read_csv(fp2)
 
 # ----------------
 # clean log df
-DM_IonStats_Series = df_logfile.apply(parce_DM_IonStatistics, args=("Voltage.*",), axis=1)
 
-temp_df = DM_IonStats_Series.str.split(pat=',', expand=True)
+# Extract Ion statistics from Detector Measurements
+DM_IonStats_Series = df_logfile.apply(parce_DM_IonStatistics, args=("Voltage=.*AreaPerIon=.*",), axis=1)
+DM_IonStats_lst = DM_IonStats_Series.tolist()
+
+# Extract Ion statistics from Gain Optimizations
+GO_index = df_logfile[(df_logfile['Object'] == "Gain Optimization v5") & (df_logfile['Action'] == "Gain Optimization v5 completed successfully")].index
+stringPattern = "Voltage=.*AreaPerIon=.*"
+compiled = re.compile(stringPattern)
+for i in GO_index:
+    x = 1
+    while compiled.match(df_logfile['Action'].iloc[i+x])  == None:
+        x += 1
+    
+    
+    split_result = df_logfile.at[i+x,'Action'].split(' ')
+    DM_IonStats_lst[i+x] = split_result[0].replace('Voltage=','') + ',' + split_result[1].replace('AreaPerIon=','')
+    
+
+
+# Add IonStats list to df_logfile as two new columns: DetectorVoltage , TuneAreaCounts then change type to float64 
+temp_df = pd.Series(DM_IonStats_lst).str.split(pat=',', expand=True)
 temp_df.columns = ['DetectorVoltage', 'TuneAreaCounts']
 df_logfile = pd.concat([df_logfile, temp_df], axis=1)
 df_logfile.replace(to_replace='False', value=np.nan, inplace=True)
 df_logfile[['DetectorVoltage','TuneAreaCounts']] = df_logfile[['DetectorVoltage','TuneAreaCounts']].astype(dtype='float64')
 
+
 # converting the time column to datetime dtype
 df_logfile['Time'] = pd.to_datetime(df_logfile['Time'], format="%m/%d/%Y %H:%M")
+
+
+print(df_logfile[['Time', 'Object', 'DetectorVoltage','TuneAreaCounts']].dropna())
+exit()
+
+
 
 
 # ----------------
