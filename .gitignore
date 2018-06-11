@@ -2,13 +2,8 @@
 Modules/__pycache__/
 
 # Project Specific
-# Modules/developmental/
-# OldDataBases/
-# RawData_csv/
-# BT4D_Market_Mix_Results/
-# RawData_Mirror.bat
-# HRT_6500_Validation_JustInCase.db
-# dicts_HRT_6500_Validation.txt
+PlanningMaterials/
+Modules/developmental/
 
 # Eclipse PyDev
 .metadata/
