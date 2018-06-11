@@ -148,7 +148,7 @@ df_samplelog.drop(columns=['QC Method', 'Folder', 'Date', 'Time', 'Time24', 'Via
 # PV1 time range for OFN +0 Volts --> 06/07/2018 10:19:56 AM - 06/08/2018 5:56:56 AM
 # PV2 time range for OFN +0 Volts --> 06/07/2018 11:27:52 AM - 06/08/2018 4:13:57 AM
 
-# Slice DataFrame by datetime to only include the 
+# Slice DataFrame by datetime to only include the OFN +0 volt data set
 # df_test = df_samplelog[['DateTime','Type','Name','DetectorVoltage','TuneAreaCounts']].loc[(df_samplelog['DateTime'] >= pd.to_datetime('06/07/2018 11:27:52', format="%m/%d/%Y %H:%M:%S")) & (df_samplelog['DateTime'] <= pd.to_datetime('06/08/2018 4:13:57', format="%m/%d/%Y %H:%M:%S"))]
 df_test = df_samplelog[['DateTime','Type','Name','DetectorVoltage','TuneAreaCounts']].loc[(df_samplelog['DateTime'] >= pd.to_datetime('06/07/2018 10:19:56', format="%m/%d/%Y %H:%M:%S")) & (df_samplelog['DateTime'] <= pd.to_datetime('06/08/2018 5:56:56', format="%m/%d/%Y %H:%M:%S"))]
 print(df_test[['DateTime','Name','DetectorVoltage','TuneAreaCounts']][(df_test['Type'] == 'Detector Measurement') | (df_test['Type'] == 'Gain Optimization')])
