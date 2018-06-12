@@ -1,16 +1,21 @@
+from csvExtracter import Extract
 from CLI import ConcoleGUI 
 import os
+import pprint
 
 class Controls():
 	
 	def __init__(self):
 		self.cli = ConcoleGUI()
-		runDescription = '''Generates a plot that shows the total number of hours for\n\t\ta given category\\sub-category per 7 day period.'''
+		self.csvDirectory = os.getcwd()
+		
+		
 		self.commandDict = {
 			'help': [self.basicInstructions, "Lists each command."],
 			'exit': [self.exitProgram, "Exits the program."],
 			'mine': [self.extractData, 'Mines the data from all the csv files found in the\n\t\tcurrent working directory.']
 			}
+		
 		self.runProgram = True
 		
 	def run(self):
@@ -55,7 +60,13 @@ class Controls():
 		return commandString
 		
 	def extractData(self):
-		pass
+		csvExtractor = Extract(self.csvDirectory)
+		csvExtractor.extract_csv_data()
+
+		
+	def printDataStructure(self, ds):
+		pp = pprint.PrettyPrinter(indent=4,width=200,depth=20)
+		pp.pprint(ds)
 		
 	def exectuteCommand(self, command):
 		# using the user input as a key, gets the corresponding value from the 
@@ -73,7 +84,7 @@ class Controls():
 # create a new controls object and prompt the user with the welcome message
 # then populate with the program instructions			
 app = Controls()
-app.giveUserFeedback('\n\n\n\n\n\nWelcome to SciData\nBelow is the list of commands.')
+app.giveUserFeedback('\n\n\n\n\n\nWelcome to DetectorStressAnalyzer\nBelow is the list of commands.')
 app.basicInstructions()
 
 # enter while loop that accepts user input until the user

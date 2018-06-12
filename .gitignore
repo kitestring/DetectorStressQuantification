@@ -4,6 +4,7 @@ Modules/__pycache__/
 # Project Specific
 PlanningMaterials/
 Modules/developmental/
+RawData_Mirror.bat
 
 # Eclipse PyDev
 .metadata/
