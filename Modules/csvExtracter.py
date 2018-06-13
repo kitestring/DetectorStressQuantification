@@ -19,7 +19,17 @@ class Extract():
         # From the CWD get all the csv files and place them into the csv_dict
         csv_dict = self.get_csv_filepaths()
         
-        # read InstrumentLog csv and preform prelimary data cleaning
+        # read Sample csv and preform prelimary data cleaning
+        
+        
+        
+        
+        
+        # Fuck, how do I label the GO's and the DM's
+        # Don't really want to do the based upon the time stamp but I'm not coming up with anything else.
+        
+        
+        
         sample_log_filepath = os.path.join(self.csvDirectory, csv_dict['SampleLog'])
         df_samplelog = self.extract_sample_log_data(sample_log_filepath)
         
@@ -34,17 +44,50 @@ class Extract():
         # and the the values are the corresponding index in the df_instrumentlog which have the ion stats data.
         # If a given row in the df_samplelog has no ion stats the value will be be np.nan 
         Ion_Stats_linking_index_series = df_samplelog.apply(self.IonStatsIndexLinking, args=(df_instrumentlog.copy(),), axis=1)
+        df_Sample = self.InsertIonStatsIntoSampleLogDF(Ion_Stats_linking_index_series, df_samplelog, df_instrumentlog)
+       
+        # Extract peak table data from peak table csv file list and obtain SetName
+        df_PeakTable, DataSet = self.extract_PeakTable_data(csv_dict['PeakTable'])
+       
+        # Drop all rows from the df_Sample that are not part of the DataSet
+#         df_Sample = df_Sample[df_Sample[]]
+        df_Sample = df_Sample[df_Sample['DataSet'] == DataSet].copy()
+        print(df_Sample[['Name','AreaPerIon']].head(100))
+            
+    
+    def extract_PeakTable_data(self, PeakTablecsvFilelst):
         
-#         for x in Ion_Stats_linking_index_series.iteritems():
-#             print(x)
-#             
-#         exit()
+        # read all Peak Table csvs and concat into a single dataframe
+        df = pd.DataFrame()
+        for csvFilePath in PeakTablecsvFilelst:
+            df_temp = self.readPeakTablecsvFile(os.path.join(self.csvDirectory,csvFilePath))
+            df = pd.concat([df, df_temp], axis=0)
         
+        # Extract the DataSet name, instrument name, and concentration from Sample column creating 3 new columns
+        Series_ParcedSample = df.apply(self.ParcePeakTableSampleName, axis=1)
+        df_ParcedSample_Split = Series_ParcedSample.str.split(pat=',', expand=True)
+        df_ParcedSample_Split.columns = ['DataSet','Concentration_pg']
+        df = pd.concat([df, df_ParcedSample_Split], axis=1)
+        df['Concentration_pg'] = df['Concentration_pg'].astype(dtype='float64')
         
-        # Verify that this is accurate
-        df_sample = self.InsertIonStatsIntoSampleLogDF(Ion_Stats_linking_index_series, df_samplelog, df_instrumentlog)
-#         print(df_sample[['Type','DetectorVoltage']][df_sample['DetectorVoltage'] > 0])
-        print(df_sample[['Type','DetectorVoltage']][(df_sample['Type'] != 'Detector Measurement') | (df_sample['Type'] != 'Gain Optimization')])
+        # Check for multiple data sets in the list of Peak table csv files
+        ds = df['DataSet'].unique()
+        if len(ds) > 1:
+            raise Exception('The set of peak table csv files contains multiple data sets')
+        
+        df.drop(columns=['DataSet'], inplace=True)
+               
+        return df,ds[0]
+    
+    def readPeakTablecsvFile(self, csvFile):
+        # Reads the the csv file returns the resulting DataFrame
+        try:
+            df =  pd.read_csv(csvFile, encoding="Latin-1")
+            return df
+        except pd.errors.EmptyDataError:  # @UndefinedVariable
+            return pd.DataFrame()
+        except pd.errors.ParserError: # @UndefinedVariable
+            raise Exception('This csv file is fucked up. You migh want to re-export it dude.', csvFile)
     
     def extract_instrument_log_data(self, Instrument_Log_file_path):
         df = pd.read_csv(Instrument_Log_file_path)
@@ -75,12 +118,12 @@ class Extract():
             IonStats_lst[i+x] = split_result[0].replace('Voltage=','') + ',' + split_result[1].replace('AreaPerIon=','')
         
         
-        # Add IonStats list to df_logfile as two new columns: DetectorVoltage , TuneAreaCounts then change type to float64 
+        # Add IonStats list to df_logfile as two new columns: DetectorVoltage , AreaPerIon then change type to float64 
         IonStats_df = pd.Series(IonStats_lst).str.split(pat=',', expand=True)
-        IonStats_df.columns = ['DetectorVoltage', 'TuneAreaCounts']
+        IonStats_df.columns = ['DetectorVoltage', 'AreaPerIon']
         df = pd.concat([df, IonStats_df], axis=1)
         df.replace(to_replace='False', value=np.nan, inplace=True)
-        df[['DetectorVoltage','TuneAreaCounts']] = df[['DetectorVoltage','TuneAreaCounts']].astype(dtype='float64')
+        df[['DetectorVoltage','AreaPerIon']] = df[['DetectorVoltage','AreaPerIon']].astype(dtype='float64')
         
         # Drop all rows that do not have ion statistics data
         df.dropna(subset=['DetectorVoltage'], inplace=True)
@@ -108,12 +151,12 @@ class Extract():
         df['DateTime'] = pd.to_datetime(df['DateTime'], format="%m/%d/%Y %H:%M:%S")
         
         # Extract the DataSet name and instrument name from Name column creating 2 new columns       
-        df['ParcedName'] = df.apply(self.ParceSampleName, axis=1)
+        df['ParcedName'] = df.apply(self.ParceSampleLogName, axis=1)
         df_ParcedName_split = df['ParcedName'].str.split(pat=',', expand=True)
         df_ParcedName_split.columns = ['DataSet','Instrument']
         df = pd.concat([df, df_ParcedName_split], axis=1)
         
-        # Drop all columns from the DataFrame that are not needed
+        # Drop all columns from the DataFrame that are not needed (won't work in windows because I can install this shit)
         df.drop(columns=['QC Method', 'Folder', 'Date', 'Time', 'Time24', 'Vial', 'AS Method', 'Update Calibration', 'Cal. Std. to Replace','DP Method','Unnamed: 0','ParcedName'], inplace=True)
         
         return df.copy()
@@ -171,12 +214,13 @@ class Extract():
         reformatted_time = '{h}:{m}:{s}'.format(h=time_parced[0],m=time_parced[1],s=time_parced[2])
         return reformatted_time
     
-    def ParceSampleName(self, row):
+    def ParceSampleLogName(self, row):
+        # Returns the Set name and instrument comma delimited
         # Example of Sample name format
         # Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3
         
         if row['Type'] == 'Sample' and isinstance(row['Name'], str):
-            # need to break up conditinoal because cannot do the below evaluation unless row['Name'] is a string
+            # need to break up conditional because cannot do the below evaluation unless row['Name'] is a string
             if not 'blank' in row['Name'].lower():
                 try:
                     name_split = row['Name'].split(' ')
@@ -184,13 +228,39 @@ class Extract():
                     instrument_name = name_split[-2].split('-')[-1] # Gets = 'PV2'
                     
                     if instrument_name == 'PV1' or instrument_name == 'PV2':
-#                         return 'False,False'
-                    
                         return SetPerfix + '_' + instrument_name + ',' + instrument_name
+                    
                 except IndexError:
                     return 'False,False'
                             
         return 'False,False'
+    
+    def ParcePeakTableSampleName(self, row):
+        # Returns the Set name, and concentration in pg comma delimited
+        # Example of Sample name format
+        # Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3
+        
+        
+        try:
+            name_split = row['Sample'].split(' ')
+            SetPerfix = name_split[0] # Gets  = 'Alk_+000v_a'
+            instrument_name = name_split[-2].split('-')[-1] # Gets = 'PV2'
+            conc = self.string_to_concentration(row['Sample'])
+            
+            return SetPerfix + '_' + instrument_name + ',{c}'.format(c=conc)
+        
+        except IndexError:
+            return 'False,False,False'
+        
+    def string_to_concentration(self, str):
+        # Example sample name 'Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3'
+        # This method gets the concentration value to the right of the "("
+        # Then converts that value to pg.
+        
+        metricdict = {'fg': 0.001, 'pg': 1, 'ng': 1000}
+        str_index = str.index('(') + 1
+        concentration_lst = str[str_index:].split(' ')
+        return float(concentration_lst[0]) * metricdict.get(concentration_lst[1], 0)
         
     
     
@@ -258,14 +328,14 @@ class Extract():
         
         # The lists below will be converted to a series and added to the returned df
             # The detectorvoltage data will be appended to dv
-            # The TuneAreaCounts data will be appended to tac
+            # The AreaPerIon data will be appended to tac
         dv = []
         tac = []
         for index in Stats_Index_Series.iteritems():
             if not math.isnan(index[1]):
                 df_logfile_index = int(index[1])
                 dv.append(df_IL.at[df_logfile_index,'DetectorVoltage'])
-                tac.append(df_IL.at[df_logfile_index,'TuneAreaCounts'])
+                tac.append(df_IL.at[df_logfile_index,'AreaPerIon'])
             else:
                 dv.append(np.nan)
                 tac.append(np.nan)
@@ -273,6 +343,6 @@ class Extract():
         df = df_SL.copy()
               
         df['DetectorVoltage'] = pd.Series(dv)
-        df['TuneAreaCounts'] = pd.Series(tac)
+        df['AreaPerIon'] = pd.Series(tac)
         
         return df
