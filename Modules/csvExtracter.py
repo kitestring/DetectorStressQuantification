@@ -21,15 +21,6 @@ class Extract():
         
         # read Sample csv and preform prelimary data cleaning
         
-        
-        
-        
-        
-        # Fuck, how do I label the GO's and the DM's
-        # Don't really want to do the based upon the time stamp but I'm not coming up with anything else.
-        
-        
-        
         sample_log_filepath = os.path.join(self.csvDirectory, csv_dict['SampleLog'])
         df_samplelog = self.extract_sample_log_data(sample_log_filepath)
         
@@ -48,11 +39,17 @@ class Extract():
        
         # Extract peak table data from peak table csv file list and obtain SetName
         df_PeakTable, DataSet = self.extract_PeakTable_data(csv_dict['PeakTable'])
-       
+        
+        # The df_Sample['Type'] == 'Detector Measurement' and df_Sample['Type'] == 'Gain Optimization' are not labeled with the 
+        # DataSet name because the data set is generated from the Sample name (example: 'Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3')
+        # Using the df_Sample['Type'] == 'Source and Analyzer Focus' as bracketing rows around the df_Sample['Type'] == 'Sample' which do have 
+        # a DataSet label, the  df_Sample['Type'] == 'Detector Measurement' and df_Sample['Type'] == 'Gain Optimization' will be properly labeled.
+        df_Sample['DataSet'] = self.LabelDataSet_DM_GO(DataSet, df_Sample)
+        
         # Drop all rows from the df_Sample that are not part of the DataSet
-#         df_Sample = df_Sample[df_Sample[]]
-        df_Sample = df_Sample[df_Sample['DataSet'] == DataSet].copy()
-        print(df_Sample[['Name','AreaPerIon']].head(100))
+        # Then only retain injected samples (not blanks),
+        df_Sample = self.SampleDF_Hygene(DataSet, df_Sample)
+        print(df_Sample[['Name','DetectorVoltage','AreaPerIon']].head(150))
             
     
     def extract_PeakTable_data(self, PeakTablecsvFilelst):
@@ -346,3 +343,80 @@ class Extract():
         df['AreaPerIon'] = pd.Series(tac)
         
         return df
+    
+    def LabelDataSet_DM_GO(self, DataSetLabel, df_sample):
+        # Note, at this point the only the data samples are properly labeled with the DataSet Label
+        # This function uses the starting and ending indices of those samples as starting places to 
+        # locate the 'Source and Analyzer Focus' that is the starting point of the DataSet & 'Source and Analyzer Focus'
+        # that is the starting place for the next set.  Use those indices to properly label the GOs & DMs within the DataSet
+        # Note, if the current DataSetLabel is the last set in the df_sample then an IndexError will be thrown, this 
+        # except will be caught
+        
+        DataSet_lst = df_sample['DataSet'].tolist()
+        
+        # This will get me the first and last index for the data set
+        df_sliced = df_sample[df_sample['DataSet'] == DataSetLabel]
+        sample_index_brackets = df_sliced.iloc[[0,-1],].index
+        
+        # Runs through the recursion loop twice
+        # The first time it begins iterating from the first (lowest) index in the DataSet and counts backward (down)
+        # Next time it begins iterating from the first (lowest) index in the DataSet and counts forward (up)
+        # Its looking for the index with the first occurrence where df_sample['Type'] == 'Source and Analyzer Focus' in both recursion loops.
+        # The two resulting indices will bracket the beginning and end of the DataSet
+        SAF_index_brackets = []
+        for n, start_index in enumerate(sample_index_brackets):
+            Found_Source_and_Analyzer_Focus = False
+            i = 0
+            while not Found_Source_and_Analyzer_Focus:
+                # If were checking from the 1st index in the data set we want to count backwards
+                # if were checking for the last index in the data set we want to count forwards
+                if n == 0:
+                    i -= 1 
+                elif n == 1:
+                    i += 1
+                
+                check_index = start_index + i
+                
+                try:
+                    if df_sample['Type'].iloc[check_index] == 'Source and Analyzer Focus':
+                        SAF_index_brackets.append(check_index)
+                        Found_Source_and_Analyzer_Focus = True
+                except IndexError:
+                    SAF_index_brackets.append(check_index)
+                    Found_Source_and_Analyzer_Focus = True
+                    
+        for n in range(SAF_index_brackets[0], SAF_index_brackets[1]):
+            DataSet_lst[n] = DataSetLabel
+        
+        return pd.Series(DataSet_lst)
+    
+    def SampleDF_Hygene(self, DataSetLabel, df_sample):
+        # Drop all rows from the df_Sample that are not part of the DataSet
+        # Then only retain injected samples (not blanks),
+        
+        # Slice DF to retain members of the DataSet only that are either  Samples, GO, or DM
+        df_sample = df_sample[(df_sample['DataSet'] == DataSetLabel) & ((df_sample['Type'] == 'Sample') | (df_sample['Type'] == 'Gain Optimization') | (df_sample['Type'] == 'Detector Measurement'))].copy()
+    
+        # From the remaining rows delete all samples that are Blanks
+        stringPattern = ".*Blank.*"
+        f = df_sample['Name'].str.contains(stringPattern)
+        df_sample = df_sample[~f].copy()
+        
+        # reindex the df and return the result
+        return df_sample.reset_index()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
