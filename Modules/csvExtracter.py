@@ -19,8 +19,7 @@ class Extract():
         # From the CWD get all the csv files and place them into the csv_dict
         csv_dict = self.get_csv_filepaths()
         
-        # read Sample csv and preform prelimary data cleaning
-        
+        # read SampleLog csv and preform prelimary data cleaning
         sample_log_filepath = os.path.join(self.csvDirectory, csv_dict['SampleLog'])
         df_samplelog = self.extract_sample_log_data(sample_log_filepath)
         
@@ -29,16 +28,17 @@ class Extract():
         df_instrumentlog = self.extract_instrument_log_data(instrument_log_filepath)
         
         # Add the ion stastics (detector voltage & AreaPerIon) from the df_instrumentlog to the 
-        # corresponding row in the df_samplelog
+        # corresponding row in the df_samplelog, below is a description of how that's done
         
-        # Ion_Stats_linking_index_series = index will match that of the df_samplelog, 
-        # and the the values are the corresponding index in the df_instrumentlog which have the ion stats data.
-        # If a given row in the df_samplelog has no ion stats the value will be be np.nan 
+            # Ion_Stats_linking_index_series: index matches that of the df_samplelog, 
+            # and the the values are the corresponding index in the df_instrumentlog which have the ion stats data.
+            # If a given row in the df_samplelog has no ion stats the value will be be np.nan 
         Ion_Stats_linking_index_series = df_samplelog.apply(self.IonStatsIndexLinking, args=(df_instrumentlog.copy(),), axis=1)
         df_Sample = self.InsertIonStatsIntoSampleLogDF(Ion_Stats_linking_index_series, df_samplelog, df_instrumentlog)
        
-        # Extract peak table data from peak table csv file list and obtain SetName
+        # Extract peak table data from peak table csv files list and obtain SetName
         df_PeakTable, DataSet = self.extract_PeakTable_data(csv_dict['PeakTable'])
+        print(df_PeakTable)
         
         # The df_Sample['Type'] == 'Detector Measurement' and df_Sample['Type'] == 'Gain Optimization' are not labeled with the 
         # DataSet name because the data set is generated from the Sample name (example: 'Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3')
@@ -49,7 +49,7 @@ class Extract():
         # Drop all rows from the df_Sample that are not part of the DataSet
         # Then only retain injected samples (not blanks),
         df_Sample = self.SampleDF_Hygene(DataSet, df_Sample)
-        print(df_Sample[['Name','DetectorVoltage','AreaPerIon']].head(150))
+#         print(df_Sample[['Name','DetectorVoltage','AreaPerIon']].head(150))
             
     
     def extract_PeakTable_data(self, PeakTablecsvFilelst):
@@ -73,6 +73,9 @@ class Extract():
             raise Exception('The set of peak table csv files contains multiple data sets')
         
         df.drop(columns=['DataSet'], inplace=True)
+        
+        # Since TAF data is not paired with a library hit all Similarity Scores for TAF data is set = 0
+        df['Similarity'][df['Type'] == 'Target'] = 0
                
         return df,ds[0]
     
