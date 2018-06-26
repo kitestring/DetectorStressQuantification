@@ -22,6 +22,7 @@ class Extract():
         # read SampleLog csv and preform prelimary data cleaning
         sample_log_filepath = os.path.join(self.csvDirectory, csv_dict['SampleLog'])
         df_samplelog = self.extract_sample_log_data(sample_log_filepath)
+
         
         # read InstrumentLog csv and preform prelimary data cleaning
         instrument_log_filepath = os.path.join(self.csvDirectory, csv_dict['InstrumentLog'])
@@ -38,7 +39,9 @@ class Extract():
        
         # Extract peak table data from peak table csv files list and obtain SetName
         df_PeakTable, DataSet = self.extract_PeakTable_data(csv_dict['PeakTable'])
-        print(df_PeakTable)
+        sampleslst = df_PeakTable['Sample'].tolist()
+        for s in sampleslst:
+            print(s)
         
         # The df_Sample['Type'] == 'Detector Measurement' and df_Sample['Type'] == 'Gain Optimization' are not labeled with the 
         # DataSet name because the data set is generated from the Sample name (example: 'Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3')
@@ -75,9 +78,20 @@ class Extract():
         df.drop(columns=['DataSet'], inplace=True)
         
         # Since TAF data is not paired with a library hit all Similarity Scores for TAF data is set = 0
-        df['Similarity'][df['Type'] == 'Target'] = 0
+        df['Similarity'] = df.apply(self.ZeroTAFSimilarity, axis=1)
                
         return df,ds[0]
+    
+    def ZeroTAFSimilarity(self,row):
+        # If a given analyte was found using TAF the similarity value will be set to 0
+        # otherwise the original similarity score will be retained
+        if row['Type'] == 'Target':
+            return 0
+        elif row['Type'] == 'Unknown':
+            return row['Similarity']
+        else:
+            raise Exception("When setting TAF analytes' similarity scores to 0 an unexpected analyte type was encountered. Sample name - {sn}".format(sn=row['Sample']))
+            
     
     def readPeakTablecsvFile(self, csvFile):
         # Reads the the csv file returns the resulting DataFrame
@@ -87,7 +101,7 @@ class Extract():
         except pd.errors.EmptyDataError:  # @UndefinedVariable
             return pd.DataFrame()
         except pd.errors.ParserError: # @UndefinedVariable
-            raise Exception('This csv file is fucked up. You migh want to re-export it dude.', csvFile)
+            raise Exception('This csv file is fucked up. You might want to re-export it dude.', csvFile)
     
     def extract_instrument_log_data(self, Instrument_Log_file_path):
         df = pd.read_csv(Instrument_Log_file_path)
