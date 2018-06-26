@@ -1,0 +1,3 @@
+Name,Type,Area,Height,FWHH (s),Similarity,1st Dimension Time (s),2nd Dimension Time (s),Peak S/N,Quant S/N,Sample
+Perfluoronaphthalene,Unknown,90587244,7103918,0.705,860,160.442,0.000,2596,19338,OFN_+250v_a L19-50000 pg/uL Split 250-1 (200 pg on Col) BT-PV1 1D
+OFN,Target,113173456,8886466,0.780,831,160.466,0.000,22295,23315,OFN_+250v_a L19-50000 pg/uL Split 250-1 (200 pg on Col) BT-PV1 1D
