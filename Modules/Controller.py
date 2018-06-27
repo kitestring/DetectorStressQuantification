@@ -1,13 +1,17 @@
 from csvExtracter import Extract
 from CLI import ConcoleGUI 
+from SQL import Postgres
+import credentials
 import os
 import pprint
+import pandas as pd
 
 class Controls():
 	
 	def __init__(self):
 		self.cli = ConcoleGUI()
 		self.csvDirectory = os.getcwd()
+		self.db = Postgres(credentials.userinfo['db'], credentials.userinfo['id'], credentials.userinfo['pw'])
 		
 		
 		self.commandDict = {
@@ -24,6 +28,7 @@ class Controls():
 	
 	def exitProgram(self):
 		# sets the runProgram boolean to false
+		self.db.close_all_connections()
 		self.runProgram = False
 		self.giveUserFeedback('Exiting Program...\nGoodbye')
 
@@ -60,9 +65,42 @@ class Controls():
 		return commandString
 		
 	def extractData(self):
-		csvExtractor = Extract(self.csvDirectory)
-		csvExtractor.extract_csv_data()
+		# Gets a dictionary containing all the csv data.  Each value is a pandas dataframe
+		# {'PeakTable':df_PeakTable, 'Sample':df_Sample, 'IDL':df_IDL, 'MS':df_MS, 'GC':df_GC}
+		# df_PeakTable - Columns: 
+			# 'Name', 'Type', 'Area', 'Height', 'FWHH (s)', 'Similarity',
+			# 'RT_1D', 'RT_2D', 'Peak S/N',
+			# 'Quant S/N', 'Sample', 'Concentration_pg'
+		# df_Sample - Columns:
+			# 'index', 'Type', 'Name', 'Status', 'Chromatographic Method',
+			# 'MS Method', 'DateTime', 'DataSet', 'Instrument', 'DetectorVoltage', 'AreaPerIon'
+		# df_IDL - Columns:
+			# 'Concentration', 'IDL'
+		# df_GC - Columns:
+			# 'GC_Method_id', 'SplitRatio', 'Chromatography', 'RunTime_min'
+		# df_MS - Columns:
+			# 'MS_Method_id', 'AcquisitionRate', 'MassRange_Bottom', 'MassRange_Top',
+			# 'ExtractionFrequency', 'DetectorOffset_Volts'
 
+		csvExtractor = Extract(self.csvDirectory)
+		DF_Dict, DataSet_id = csvExtractor.extract_csv_data()
+		
+		# DataSetCheck
+		
+		# If DataSet check pass then upload data
+# 		x = DF_Dict['IDL'][['IDL','Concentration']].iloc[0].tolist()
+# 		print(self.db.UploadTableRow_ReturnSerialID('IDL', x, 'IDL_id'))
+
+# 		self.db.IsMethodUnique('GC', '1D OFN - 250-1 Split')
+# 		self.db.IsMethodUnique('MS', '1D OFN +250 Volts')
+		
+		
+# 		x = self.db.DataUploadTest()
+# 		print(x*10)
+		
+# 		self.db.QueryTest()
+
+		print(DF_Dict['GC'])
 		
 	def printDataStructure(self, ds):
 		pp = pprint.PrettyPrinter(indent=4,width=200,depth=20)

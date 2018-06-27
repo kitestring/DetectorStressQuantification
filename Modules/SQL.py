@@ -1,103 +1,59 @@
-import credentials
 import psycopg2
 
-class postgres():
+class Postgres():
     
     def __init__(self, db_name, Postgres_user, Postgres_pw):
         
         self.conn_psql = psycopg2.connect(dbname=db_name, user=Postgres_user, host="/tmp/", password=Postgres_pw)
         self.cur_psql= self.conn_psql.cursor()
     
-    def getTables_FromSQLite(self):
-        self.cur_sqlite.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        return self.cur_sqlite.fetchall()
-        # [('album',), ('artist',), ('customer',), ('employee',), ('genre',), ('invoice',), ('invoice_line',), ('media_type',), ('playlist',), ('playlist_track',), ('track',)]
+    def DataUploadTest(self):
+        table = 'IDL'
+#         row = ("DEFAULT", 0.415, 0.002)
+        self.cur_psql.execute("INSERT INTO %s VALUES (DEFAULT, %s) RETURNING %s;" % (table, '0.0415, 0.003', 'IDL_id'))
+        IDL_id_row =  self.cur_psql.fetchall()
+        return IDL_id_row[0][0]
     
-    def getTableSchema_FromSQLite(self, table_name):
-        return self.conn_sqlite.execute("PRAGMA table_info({tn});".format(tn=table_name)).fetchall()
-        # [(0, 'album_id', 'INTEGER', 1, None, 1), (1, 'title', 'NVARCHAR(160)', 1, None, 0), (2, 'artist_id', 'INTEGER', 1, None, 0)]
-        
-    def getData_FromSQLite(self, table_name):
-        return self.conn_sqlite.execute("SELECT * FROM {tn};".format(tn=table_name)).fetchall()
+    def QueryTest(self):
+        table = 'IDL'
+        self.cur_psql.execute("SELECT * FROM IDL")
+        IDL_id_row =  self.cur_psql.fetchall()
+        print(IDL_id_row)
     
-    def create_postgresql_table(self, table_name, table_schema):
+    def IsMethodUnique(self, MethodType, MethodID):
+        # MethodType must be GC or MS only
+        if MethodType != 'GC' and  MethodType != 'MS':
+            raise Exception('MethodType must be "GC" or "MS" only.')
         
-        # This look creates a lists of strings, one for each column to be added,
-        # each string is carries the PRAGA data for that column and will
-        # be used in the CREATE TABLE statement
-        pragma = {}
-        columns = []
-        for column in table_schema:
+        tab = MethodType + "_Method"
+        col = tab + '_id'
         
-            pragma['cid'] = column[0]
-            pragma['name'] = column[1]
-            pragma['notnull'] = column[3]
-            pragma['dflt_value'] = column[4]
+        # Uncomment to print the query
+        # print("SELECT {c1} FROM {t} WHERE {c2} = '{i}';".format(c1=col,t=tab,c2=col,i=MethodID))
+        self.cur_psql.execute("SELECT {c1} FROM {t} WHERE {c2} = '{i}';".format(c1=col,t=tab,c2=col,i=MethodID))
+        result = self.cur_psql.fetchall()
+        print(result == [])
             
-            if 'NVARCHAR' in column[2]:
-                pragma['type'] = column[2].replace('NVARCHAR', 'VARCHAR')
-            elif column[2] == 'DATETIME':
-                pragma['type'] = 'TIMESTAMP'
-            else:
-                pragma['type'] = column[2]
-                      
-            if column[5] == 1 and table_name != 'playlist_track':
-                pragma['pk'] = 'PRIMARY KEY'
-            else:
-                pragma['pk'] = ''
-                
-            columns.append('{cn} {ct} {pk}'.format(cn=pragma['name'], ct=pragma['type'], pk=pragma['pk']).strip())
-            
-        query = 'CREATE TABLE {tn} ('.format(tn=table_name) + ', '.join(columns) + ');'
+    def UploadData(self, DF_Dict):
+        # Load IDL row and get IDL_row_id with is the primary key row
+        # this will be used as a foreign key value for the DataSet table load
+        IDL_row_values_as_list = DF_Dict['IDL'][['IDL','Concentration']].iloc[0].tolist()
+        IDL_row_id = self.db.UploadTableRow_ReturnSerialID('IDL', IDL_row_values_as_list, 'IDL_id')
         
-        self.conn_psql.autocommit = True
-        self.cur_psql.execute(query)
+        # If extracted and not already in the DB (checks will be added later) Load the GC & MS method
+        
+        
+        
+    def UploadTableRow_ReturnSerialID(self, table, row_values_as_list, columnid):
+        row_values_as_csv_str = ",".join(map(str, row_values_as_list))
+        # Uncomment to print the query
+        # print("INSERT INTO %s VALUES (DEFAULT, %s) RETURNING %s;" % (table, row_values_as_csv_str, columnid))
+        self.cur_psql.execute("INSERT INTO %s VALUES (DEFAULT, %s) RETURNING %s;" % (table, row_values_as_csv_str, columnid))
+        id_row =  self.cur_psql.fetchall()
+        return id_row[0][0]
     
-    def dumpData_IntoPostgreSQL(self, table, table_rows, table_schema):
-         
-        for row in table_rows:
-            cleaned_row = self.clean_data_set(row, table_schema)
-            self.cur_psql.execute("INSERT INTO %s VALUES %s" % (table, cleaned_row))
-            
-    def clean_data_set(self, tup, table_schema, bad_characters = ["'"]):
-        cleaned_data = []
-
-        for index, value in enumerate(tup):
-            if type(value) is str:
-                tmp = str(value)
-                for c in bad_characters:
-                    if c in value:
-                        tmp = tmp.replace(c,"")
-                cleaned_data.append(tmp)
-            elif value is None and table_schema[index][2] != 'INTEGER':
-                cleaned_data.append("")
-            elif value is None and table_schema[index][2] == 'INTEGER':
-                cleaned_data.append(0)
-            else:
-                cleaned_data.append(value)
-        
-        return tuple(cleaned_data)
-    
-    def convert(self):
-        
-        tables = self.getTables_FromSQLite()
-        tables[:] = ['%s' % t for t in tables]
-        for table_name in tables:
-            print('Working Table: {tn}\n'.format(tn=table_name))
-            table_schema = self.getTableSchema_FromSQLite(table_name)
-            print(table_schema)
-            table_rows = self.getData_FromSQLite(table_name)
-            self.create_postgresql_table(table_name, table_schema)
-            self.dumpData_IntoPostgreSQL(table_name, table_rows, table_schema)
-            print('\nTable: {tn}\nData Loaded\n'.format(tn=table_name))
-            
-        self.conn_psql.commit()
-            
-            
-        
-        
     def close_all_connections(self):
-        self.conn_sqlite.close()
+        self.conn_psql.commit()
         self.conn_psql.close()
-
-DB = postgres(credentials.userinfo['db'], credentials.userinfo['id'], credentials.userinfo['pw'])
+        
+        

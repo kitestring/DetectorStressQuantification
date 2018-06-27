@@ -1,2 +1,2 @@
 MS_Method_id,AcquisitionRate,MassRange_Bottom,MassRange_Top,ExtractionFrequency,DetectorOffset_Volts
-1D OFN +250 Volts,17,50,500,30,250
+1D OFN +350 Volts,17,50,500,30,350
