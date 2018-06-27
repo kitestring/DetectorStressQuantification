@@ -14,7 +14,24 @@ class Extract():
         self.csvDirectory = csvDirectory
         
     def extract_csv_data(self):
-        # returns a data structure that is formatted for SQL uploading
+        # returns a library containing the following pandas data frame & the DataSet_id
+        # {'PeakTable':df_PeakTable, 'Sample':df_Sample, 'IDL':df_IDL, 'MS':df_MS, 'GC':df_GC}
+        # df_PeakTable - Columns: 
+            # 'Name', 'Type', 'Area', 'Height', 'FWHH (s)', 'Similarity',
+            # 'RT_1D', 'RT_2D', 'Peak S/N',
+            # 'Quant S/N', 'Sample', 'Concentration_pg'
+        # df_Sample - Columns:
+            # 'index', 'Type', 'Name', 'Status', 'Chromatographic Method',
+            # 'MS Method', 'DateTime', 'DataSet', 'Instrument', 'DetectorVoltage', 'AreaPerIon'
+        # df_IDL - Columns:
+            # 'Concentration', 'IDL'
+        # df_GC - Columns:
+            # 'GC_Method_id', 'SplitRatio', 'Chromatography', 'RunTime_min'
+        # df_MS - Columns:
+            # 'MS_Method_id', 'AcquisitionRate', 'MassRange_Bottom', 'MassRange_Top',
+            # 'ExtractionFrequency', 'DetectorOffset_Volts',
+       
+        
         
         # From the CWD get all the csv files and place them into the csv_dict
         csv_dict = self.get_csv_filepaths()
@@ -39,9 +56,6 @@ class Extract():
        
         # Extract peak table data from peak table csv files list and obtain SetName
         df_PeakTable, DataSet = self.extract_PeakTable_data(csv_dict['PeakTable'])
-        sampleslst = df_PeakTable['Sample'].tolist()
-        for s in sampleslst:
-            print(s)
         
         # The df_Sample['Type'] == 'Detector Measurement' and df_Sample['Type'] == 'Gain Optimization' are not labeled with the 
         # DataSet name because the data set is generated from the Sample name (example: 'Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3')
@@ -53,7 +67,29 @@ class Extract():
         # Then only retain injected samples (not blanks),
         df_Sample = self.SampleDF_Hygene(DataSet, df_Sample)
 #         print(df_Sample[['Name','DetectorVoltage','AreaPerIon']].head(150))
-            
+
+        # Get read method data & IDL data
+        df_GC, df_MS, df_IDL  = self.extract_Method_IDL_data(csv_dict['GC_Method'], csv_dict['MS_Method'], csv_dict['idl'])
+        
+        return {'PeakTable':df_PeakTable, 'Sample':df_Sample, 'IDL':df_IDL, 'MS':df_MS, 'GC':df_GC}, DataSet
+    
+    def extract_Method_IDL_data(self, GCFilePath, MSFilePath, IDLFilePath):
+        # Returns the method & IDL data as pandas DataFrames, if the file(s) are not present then returns None
+        
+        csvdata = []
+        filepath = []
+        filepath.append(os.path.join(self.csvDirectory,GCFilePath))
+        filepath.append(os.path.join(self.csvDirectory,MSFilePath))
+        filepath.append(os.path.join(self.csvDirectory,IDLFilePath))
+        
+        for f in filepath:
+                  
+            if os.path.isfile(f):
+                csvdata.append(pd.read_csv(f))
+            else:
+                csvdata.append(None)
+                
+        return csvdata[0], csvdata[1], csvdata[2]
     
     def extract_PeakTable_data(self, PeakTablecsvFilelst):
         
@@ -63,7 +99,7 @@ class Extract():
             df_temp = self.readPeakTablecsvFile(os.path.join(self.csvDirectory,csvFilePath))
             df = pd.concat([df, df_temp], axis=0)
         
-        # Extract the DataSet name, instrument name, and concentration from Sample column creating 3 new columns
+        # Extract the DataSet name and concentration from Sample column creating 2 new columns
         Series_ParcedSample = df.apply(self.ParcePeakTableSampleName, axis=1)
         df_ParcedSample_Split = Series_ParcedSample.str.split(pat=',', expand=True)
         df_ParcedSample_Split.columns = ['DataSet','Concentration_pg']
@@ -190,7 +226,7 @@ class Extract():
                 csvFileslst.remove(f)
                 csvFiledict[f[:-4]] = f
             else:
-                csvFiledict[f[:-4]] = False
+                csvFiledict[f[:-4]] = None
                 
         csvFiledict['PeakTable'] = csvFileslst
         
