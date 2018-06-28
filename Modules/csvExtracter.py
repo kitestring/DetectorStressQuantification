@@ -77,17 +77,19 @@ class Extract():
         # Returns the method & IDL data as pandas DataFrames, if the file(s) are not present then returns None
         
         csvdata = []
-        filepath = []
-        filepath.append(os.path.join(self.csvDirectory,GCFilePath))
-        filepath.append(os.path.join(self.csvDirectory,MSFilePath))
-        filepath.append(os.path.join(self.csvDirectory,IDLFilePath))
         
-        for f in filepath:
-                  
-            if os.path.isfile(f):
-                csvdata.append(pd.read_csv(f))
-            else:
+        for f in [GCFilePath, MSFilePath, IDLFilePath]:
+            if f == None:
+                # IF the file was not initially found in the get_csv_filepaths
                 csvdata.append(None)
+            else:
+                # Probably a bit redundant...
+                # The conditional below verifies that the file path is valid before reading the csv into pandas
+                fp = os.path.join(self.csvDirectory,f)
+                if os.path.isfile(fp):
+                    csvdata.append(pd.read_csv(fp))
+                else:
+                    csvdata.append(None)
                 
         return csvdata[0], csvdata[1], csvdata[2]
     
@@ -115,6 +117,9 @@ class Extract():
         
         # Since TAF data is not paired with a library hit all Similarity Scores for TAF data is set = 0
         df['Similarity'] = df.apply(self.ZeroTAFSimilarity, axis=1)
+        
+        # Rename the R.T. columns
+        df = df.rename(index=str, columns={'1st Dimension Time (s)':'RT_1D', '2nd Dimension Time (s)':'RT_2D'})
                
         return df,ds[0]
     
@@ -454,6 +459,10 @@ class Extract():
         stringPattern = ".*Blank.*"
         f = df_sample['Name'].str.contains(stringPattern)
         df_sample = df_sample[~f].copy()
+        
+        # Convert DateTime to a object(string)
+#         df_sample['DateTime'] = df_sample['DateTime'].strftime("%m/%d/%Y %H:%M:%S")
+        df_sample['DateTime'] = df_sample['DateTime'].apply(lambda t: t.strftime("%m/%d/%Y %H:%M:%S"))
         
         # reindex the df and return the result
         return df_sample.reset_index()
