@@ -22,7 +22,7 @@ CREATE TABLE MS_Method (
 
 CREATE TABLE DataSet (
 	DataSet_id TEXT PRIMARY KEY,
-	Instrument VARCHAR(2),
+	Instrument VARCHAR(3),
 	IDL_id INTEGER REFERENCES IDL(IDL_id),
 	GC_Method_id TEXT REFERENCES GC_Method(GC_Method_id),
 	MS_Method_id TEXT REFERENCES MS_Method(MS_Method_id)
@@ -30,7 +30,7 @@ CREATE TABLE DataSet (
 
 CREATE TABLE IonStats (
 	IonStats_id SERIAL PRIMARY KEY,
-	Voltage NUMERIC(4,1),
+	Voltage FLOAT(1),
 	AreaPerIon FLOAT(6)
 );
 
@@ -47,8 +47,8 @@ CREATE TABLE PeakTable (
 	PeakTable_id SERIAL PRIMARY KEY,
 	Analyte TEXT,
 	DataProcessingType TEXT,
-	Area INTEGER,
-	Height INTEGER,
+	Area BIGINT,
+	Height BIGINT,
 	FWHH_S FLOAT(6),
 	Similairity SMALLINT,
 	RT_1D FLOAT(3),

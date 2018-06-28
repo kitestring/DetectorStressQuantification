@@ -88,19 +88,10 @@ class Controls():
 		# DataSetCheck
 		
 		# If DataSet check pass then upload data
-# 		x = DF_Dict['IDL'][['IDL','Concentration']].iloc[0].tolist()
-# 		print(self.db.UploadTableRow_ReturnSerialID('IDL', x, 'IDL_id'))
-
-# 		self.db.IsMethodUnique('GC', '1D OFN - 250-1 Split')
-# 		self.db.IsMethodUnique('MS', '1D OFN +250 Volts')
 		
 		
-# 		x = self.db.DataUploadTest()
-# 		print(x*10)
-		
-# 		self.db.QueryTest()
-
-		print(DF_Dict['GC'])
+			
+		self.db.UploadData(DF_Dict, DataSet_id)
 		
 	def printDataStructure(self, ds):
 		pp = pprint.PrettyPrinter(indent=4,width=200,depth=20)
