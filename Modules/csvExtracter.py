@@ -30,6 +30,9 @@ class Extract():
         # df_MS - Columns:
             # 'MS_Method_id', 'AcquisitionRate', 'MassRange_Bottom', 'MassRange_Top',
             # 'ExtractionFrequency', 'DetectorOffset_Volts',
+        # df_DR - ColumnsL
+            # 'OrdersOfMagnitude', 'ConcRange_pg_Low',
+            # 'ConcRange_pg_High', 'Correlation_Coefficient_r'
        
         
         
@@ -68,17 +71,17 @@ class Extract():
         df_Sample = self.SampleDF_Hygene(DataSet, df_Sample)
 #         print(df_Sample[['Name','DetectorVoltage','AreaPerIon']].head(150))
 
-        # Get read method data & IDL data
-        df_GC, df_MS, df_IDL  = self.extract_Method_IDL_data(csv_dict['GC_Method'], csv_dict['MS_Method'], csv_dict['idl'])
+        # Get read method data, IDL data, & Dynamic Range data
+        df_GC, df_MS, df_IDL, df_DR  = self.extract_Method_IDL_DR_data(csv_dict['GC_Method'], csv_dict['MS_Method'], csv_dict['idl'], csv_dict['DR'])
         
-        return {'PeakTable':df_PeakTable, 'Sample':df_Sample, 'IDL':df_IDL, 'MS':df_MS, 'GC':df_GC}, DataSet
+        return {'PeakTable':df_PeakTable, 'Sample':df_Sample, 'IDL':df_IDL, 'MS':df_MS, 'GC':df_GC, 'DR':df_DR}, DataSet
     
-    def extract_Method_IDL_data(self, GCFilePath, MSFilePath, IDLFilePath):
+    def extract_Method_IDL_DR_data(self, GCFilePath, MSFilePath, IDLFilePath, DRFilePath):
         # Returns the method & IDL data as pandas DataFrames, if the file(s) are not present then returns None
         
         csvdata = []
         
-        for f in [GCFilePath, MSFilePath, IDLFilePath]:
+        for f in [GCFilePath, MSFilePath, IDLFilePath, DRFilePath]:
             if f == None:
                 # IF the file was not initially found in the get_csv_filepaths
                 csvdata.append(None)
@@ -91,7 +94,7 @@ class Extract():
                 else:
                     csvdata.append(None)
                 
-        return csvdata[0], csvdata[1], csvdata[2]
+        return csvdata[0], csvdata[1], csvdata[2], csvdata[3]
     
     def extract_PeakTable_data(self, PeakTablecsvFilelst):
         
@@ -239,7 +242,7 @@ class Extract():
         # will be the correspoinding value.
         
         csvFileslst = self.find_csv_filenames_remove_nonASCII()
-        csvFileTypes = ['GC_Method.csv','idl.csv','InstrumentLog.csv','MS_Method.csv','SampleLog.csv']
+        csvFileTypes = ['GC_Method.csv','idl.csv','InstrumentLog.csv','MS_Method.csv','SampleLog.csv','DR.csv']
         csvFiledict = {}
         
         for f in csvFileTypes:
@@ -323,14 +326,14 @@ class Extract():
         except IndexError:
             return 'False,False,False'
         
-    def string_to_concentration(self, str):
+    def string_to_concentration(self, conc_str):
         # Example sample name 'Alk_+000v_a L2-0.025 pg/uL Split 5-1 (5 fg on Col) BT-PV2 1D:3'
         # This method gets the concentration value to the right of the "("
         # Then converts that value to pg.
         
         metricdict = {'fg': 0.001, 'pg': 1, 'ng': 1000}
-        str_index = str.index('(') + 1
-        concentration_lst = str[str_index:].split(' ')
+        str_index = conc_str.index('(') + 1
+        concentration_lst = conc_str[str_index:].split(' ')
         return float(concentration_lst[0]) * metricdict.get(concentration_lst[1], 0)
         
     

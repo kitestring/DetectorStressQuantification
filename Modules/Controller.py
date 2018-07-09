@@ -81,6 +81,9 @@ class Controls():
 		# df_MS - Columns:
 			# 'MS_Method_id', 'AcquisitionRate', 'MassRange_Bottom', 'MassRange_Top',
 			# 'ExtractionFrequency', 'DetectorOffset_Volts'
+		# df_DR - ColumnsL
+			# 'OrdersOfMagnitude', 'ConcRange_pg_Low',
+			# 'ConcRange_pg_High', 'Correlation_Coefficient_r'
 
 		csvExtractor = Extract(self.csvDirectory)
 		DF_Dict, DataSet_id = csvExtractor.extract_csv_data()
@@ -89,7 +92,8 @@ class Controls():
 		
 		# If DataSet check pass then upload data
 		
-		
+# 		self.printDataStructure(DF_Dict['PeakTable'][['Area','Height']])
+# 		exit()
 			
 		self.db.UploadData(DF_Dict, DataSet_id)
 		
