@@ -46,11 +46,11 @@ class Postgres():
         IDL_row_id = self.UploadTableRow_ReturnSerialID('IDL', IDL_row_values_as_list, 'IDL_id')
         
         # If extracted and not already in the DB Load the GC & MS method
-        if type(DF_Dict['GC']) is pd.core.frame.DataFrame:
+        if type(DF_Dict['GC']) is pd.core.frame.DataFrame: #@UndefinedVariable
             if self.IsMethodUnique('GC', DF_Dict['GC']['GC_Method_id'].iloc[0]):
                 self.UploadTableRow('GC_Method', DF_Dict['GC'].iloc[0].tolist())
             
-        if type(DF_Dict['MS']) is pd.core.frame.DataFrame:
+        if type(DF_Dict['MS']) is pd.core.frame.DataFrame: #@UndefinedVariable
             if self.IsMethodUnique('MS', DF_Dict['MS']['MS_Method_id'].iloc[0]):
                 self.UploadTableRow('MS_Method', DF_Dict['MS'].iloc[0].tolist())
                 
