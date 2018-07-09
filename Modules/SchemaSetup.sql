@@ -20,6 +20,13 @@ CREATE TABLE MS_Method (
 	DetectorOffset_Volts SMALLINT
 );
 
+CREATE TABLE GC_Method (
+	GC_Method_id TEXT PRIMARY KEY,
+	SplitRatio SMALLINT,
+	Chromatrography VARCHAR(2),
+	RunTime_min FLOAT(2)
+);
+
 CREATE TABLE DataSet (
 	DataSet_id TEXT PRIMARY KEY,
 	Instrument VARCHAR(3),
