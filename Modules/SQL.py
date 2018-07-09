@@ -16,7 +16,7 @@ class Postgres():
         return IDL_id_row[0][0]
     
     def QueryTest(self):
-        table = 'IDL'
+        table = 'IDL' #@UnusedVariable
         self.cur_psql.execute("SELECT * FROM IDL")
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
@@ -40,10 +40,20 @@ class Postgres():
             return False
             
     def UploadData(self, DF_Dict, DataSet_id):
+        # If extracted != to None, and thus is a pd.DataFrame then
         # Load IDL row and get IDL_id which is the primary key
         # this will be used as a foreign key value for the DataSet table
-        IDL_row_values_as_list = DF_Dict['IDL'][['IDL','Concentration']].iloc[0].tolist()
-        IDL_row_id = self.UploadTableRow_ReturnSerialID('IDL', IDL_row_values_as_list, 'IDL_id')
+        if type(DF_Dict['IDL']) is pd.core.frame.DataFrame: #@UndefinedVariable
+            IDL_row_values_as_list = DF_Dict['IDL'][['IDL','Concentration']].iloc[0].tolist()
+            IDL_row_id = self.UploadTableRow_ReturnSerialID('IDL', IDL_row_values_as_list, 'IDL_id')
+        else:
+            IDL_row_id = ""
+            
+        if type(DF_Dict['DR']) is pd.core.frame.DataFrame: #@UndefinedVariable
+            DR_row_values_as_list = DF_Dict['DR'][['OrdersOfMagnitude','ConcRange_pg_Low', 'ConcRange_pg_High', 'Correlation_Coefficient_r']].iloc[0].tolist()
+            DR_row_id = self.UploadTableRow_ReturnSerialID('DynamicRange', DR_row_values_as_list, 'DR_id')
+        else:
+            DR_row_id = ""
         
         # If extracted and not already in the DB Load the GC & MS method
         if type(DF_Dict['GC']) is pd.core.frame.DataFrame: #@UndefinedVariable
@@ -54,8 +64,9 @@ class Postgres():
             if self.IsMethodUnique('MS', DF_Dict['MS']['MS_Method_id'].iloc[0]):
                 self.UploadTableRow('MS_Method', DF_Dict['MS'].iloc[0].tolist())
                 
-        # Transform then load DataSet table data
-        DataSetlst = self.TransfromDataSetData(DF_Dict['Sample'], DataSet_id, IDL_row_id)
+        # Transform then load DataSet table data 
+        # Note, I've not tested this when DF_Dict['IDL'] == None or DF_Dict['DR'] == None
+        DataSetlst = self.TransfromDataSetData(DF_Dict['Sample'], DataSet_id, IDL_row_id, DR_row_id)
         self.UploadTableRow('DataSet', DataSetlst)
         
         # Load IonStats row and get IonStats_id which is the primary key
@@ -98,7 +109,7 @@ class Postgres():
             QSN = pr[1]['Quant S/N']
             C = pr[1]['Concentration_pg']
             PeakTablelist = [Anal,DP,A,H,F,S,RT1,RT2,PSN,QSN,C,Sample_id]
-            PeakTable_id = self.UploadTableRow_ReturnSerialID('PeakTable', PeakTablelist, 'PeakTable_id')
+            PeakTable_id = self.UploadTableRow_ReturnSerialID('PeakTable', PeakTablelist, 'PeakTable_id') #@UnusedVariable
             
     
     def LoadIonsStats(self, df_Sample):
@@ -108,7 +119,7 @@ class Postgres():
         
         # Iterates over each row in the df. Each row where the type is a DM or GO
         # Upload the ionstats data and append the returned IonStats_id to the IonStats_id_foreignkeys list
-        # For every other row append None IonStats_id_foreignkeys list
+        # For every other row append an empty string "" IonStats_id_foreignkeys list
         
         for r in df_Sample.iterrows():
             t = r[1]['Type']
@@ -121,7 +132,7 @@ class Postgres():
                 
         return IonStats_id_foreignkeys
     
-    def TransfromDataSetData(self, df_Sample, DataSet_id, IDL_row_id):
+    def TransfromDataSetData(self, df_Sample, DataSet_id, IDL_row_id, DR_row_id):
         # df_Sample - Columns:
             # 'index', 'Type', 'Name', 'Status', 'Chromatographic Method',
             # 'MS Method', 'DateTime', 'DataSet', 'Instrument', 'DetectorVoltage', 'AreaPerIon'
@@ -133,13 +144,18 @@ class Postgres():
             if i != 'False':
                 Instrument = i
 
-        return [DataSet_id, Instrument, IDL_row_id, GC_Method_id, MS_Method_id]
+        return [DataSet_id, Instrument, IDL_row_id, GC_Method_id, MS_Method_id, DR_row_id]
     
     def UploadTableRow(self, table, row_values_as_list):
+        # This corrects values that should be Null but in the string conversion are ''
+        query_statement = "INSERT INTO %s VALUES %s;" % (table, tuple(row_values_as_list))
+        query_statement = query_statement.replace("''","NULL")
+        
         # Uncomment to print the query, example query:
         # INSERT INTO MS_Method VALUES ('1D OFN +250 Volts', 17, 50, 500, 30, 250);
-        # print("INSERT INTO %s VALUES %s;" % (table, tuple(row_values_as_list)))
-        self.cur_psql.execute("INSERT INTO %s VALUES %s;" % (table, tuple(row_values_as_list)))
+        # print(query_statement)
+        
+        self.cur_psql.execute(query_statement)
         
     def UploadTableRow_ReturnSerialID(self, table, row_values_as_list, columnid):
         q1 = "INSERT INTO %s VALUES %s RETURNING %s;" % (table, tuple(row_values_as_list), columnid)

@@ -20,11 +20,13 @@ CREATE TABLE MS_Method (
 	DetectorOffset_Volts SMALLINT
 );
 
-CREATE TABLE GC_Method (
-	GC_Method_id TEXT PRIMARY KEY,
-	SplitRatio SMALLINT,
-	Chromatrography VARCHAR(2),
-	RunTime_min FLOAT(2)
+CREATE TABLE DynamicRange (
+	DR_id SERIAL PRIMARY KEY,
+	OrdersOfMagnitude FLOAT(5),
+	ConcRange_pg_Low FLOAT(6),
+	ConcRange_pg_High FLOAT(6),
+	Correlation_Coefficient_r FLOAT(5) 
+	
 );
 
 CREATE TABLE DataSet (
@@ -32,7 +34,8 @@ CREATE TABLE DataSet (
 	Instrument VARCHAR(3),
 	IDL_id INTEGER REFERENCES IDL(IDL_id),
 	GC_Method_id TEXT REFERENCES GC_Method(GC_Method_id),
-	MS_Method_id TEXT REFERENCES MS_Method(MS_Method_id)
+	MS_Method_id TEXT REFERENCES MS_Method(MS_Method_id),
+	DR_id INTEGER REFERENCES DynamicRange(DR_id)
 );
 
 CREATE TABLE IonStats (
