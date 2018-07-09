@@ -153,8 +153,10 @@ class Extract():
         
         # Extract Ion statistics from Gain Optimization rows
         # First the indices for each row that indicates a GO has completed are extracted
-        # Next, for each GO completion index the rows immidately following are checked for the string patter show below,
+        # Next, for each GO completion index the rows immediately following are checked for the string patter show below,
         # this string pattern corresponds with the GO row that has the final ion statistics for that particular GO.
+        # However, when an offset is used the final ion statistics will be WITH the offset not the GO optimized
+        # to a TuneAreaCount of 110.  As such each matching patter will be checked that the TuneAreaCount = 110 (+/- 4)
         # The matching pattern will be within several rows of the GO completion row
         
         GO_index = df[(df['Object'] == "Gain Optimization v5") & (df['Action'] == "Gain Optimization v5 completed successfully")].index
@@ -164,14 +166,28 @@ class Extract():
         # Iterates through the GO completion index looking through the following rows for a pattern match 
         for i in GO_index:
             x = 1
-            while compiled.match(df['Action'].iloc[i+x])  == None:
-                x += 1
-        
-            # Once the matching index is found, the ion statistics are extracted from the string and inserted into the 
-            # Ion stats list at the corresponding index.  It is added in a comma delimited format
-            split_result = df.at[i+x,'Action'].split(' ')
-            IonStats_lst[i+x] = split_result[0].replace('Voltage=','') + ',' + split_result[1].replace('AreaPerIon=','')
-        
+            GO_IonStats_Found = False
+            
+            while not GO_IonStats_Found:
+                
+                if not compiled.match(df['Action'].iloc[i+x])  == None:
+                    # If a match is found check if the TuneAreaCount is within the 110 (+/- 4) threshold
+                    split_result = df.at[i+x,'Action'].split(' ') # example: ['Voltage=2283.800000', 'AreaPerIon=446.952505']
+                    DetectorVoltage_comma_AreaPerIon_str = split_result[0].replace('Voltage=','') + ',' + split_result[1].replace('AreaPerIon=','')
+                    # Example: 2283.800000,446.952505
+                    DetectorVoltage_AreaPerIon_lst = DetectorVoltage_comma_AreaPerIon_str.split(',') # Example: ['2283.800000', '446.952505']
+                    API = float(DetectorVoltage_AreaPerIon_lst[1]) # Example: 446.952505
+                    
+                    if API >= 106 and API <= 114:
+                        # Once the matching index is found, the ion statistics are extracted 
+                        # from the string and inserted into the 
+                        # Ion stats list at the corresponding index.  
+                        # It is added in a comma delimited string format
+                        IonStats_lst[i+x] = DetectorVoltage_comma_AreaPerIon_str
+                        GO_IonStats_Found = True
+                
+                # If not a match add 1 to x so the next row can be checked
+                if GO_IonStats_Found == False: x += 1
         
         # Add IonStats list to df_logfile as two new columns: DetectorVoltage , AreaPerIon then change type to float64 
         IonStats_df = pd.Series(IonStats_lst).str.split(pat=',', expand=True)
