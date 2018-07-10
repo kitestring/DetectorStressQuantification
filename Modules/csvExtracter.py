@@ -159,7 +159,7 @@ class Extract():
         # Next, for each GO completion index the rows immediately following are checked for the string patter show below,
         # this string pattern corresponds with the GO row that has the final ion statistics for that particular GO.
         # However, when an offset is used the final ion statistics will be WITH the offset not the GO optimized
-        # to a TuneAreaCount of 110.  As such each matching patter will be checked that the TuneAreaCount = 110 (+/- 4)
+        # to a TuneAreaCount of 110.  As such each matching patter will be checked that the TuneAreaCount = 110 (+/- 5)
         # The matching pattern will be within several rows of the GO completion row
         
         GO_index = df[(df['Object'] == "Gain Optimization v5") & (df['Action'] == "Gain Optimization v5 completed successfully")].index
@@ -174,14 +174,14 @@ class Extract():
             while not GO_IonStats_Found:
                 
                 if not compiled.match(df['Action'].iloc[i+x])  == None:
-                    # If a match is found check if the TuneAreaCount is within the 110 (+/- 4) threshold
+                    # If a match is found check if the TuneAreaCount is within the 110 (+/- 5) threshold
                     split_result = df.at[i+x,'Action'].split(' ') # example: ['Voltage=2283.800000', 'AreaPerIon=446.952505']
                     DetectorVoltage_comma_AreaPerIon_str = split_result[0].replace('Voltage=','') + ',' + split_result[1].replace('AreaPerIon=','')
                     # Example: 2283.800000,446.952505
                     DetectorVoltage_AreaPerIon_lst = DetectorVoltage_comma_AreaPerIon_str.split(',') # Example: ['2283.800000', '446.952505']
                     API = float(DetectorVoltage_AreaPerIon_lst[1]) # Example: 446.952505
                     
-                    if API >= 106 and API <= 114:
+                    if API >= 105 and API <= 115:
                         # Once the matching index is found, the ion statistics are extracted 
                         # from the string and inserted into the 
                         # Ion stats list at the corresponding index.  
@@ -473,7 +473,10 @@ class Extract():
         
         # Slice DF to retain members of the DataSet only that are either  Samples, GO, or DM
         df_sample = df_sample[(df_sample['DataSet'] == DataSetLabel) & ((df_sample['Type'] == 'Sample') | (df_sample['Type'] == 'Gain Optimization') | (df_sample['Type'] == 'Detector Measurement'))].copy()
-    
+        
+        # Remove all rows that have a nan in the name column
+        df_sample.dropna(subset=['Name'], inplace=True)
+        
         # From the remaining rows delete all samples that are Blanks
         stringPattern = ".*Blank.*"
         f = df_sample['Name'].str.contains(stringPattern)
