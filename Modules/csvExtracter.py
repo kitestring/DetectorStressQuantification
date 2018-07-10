@@ -432,8 +432,11 @@ class Extract():
         DataSet_lst = df_sample['DataSet'].tolist()
         
         # This will get me the first and last index for the data set
-        df_sliced = df_sample[df_sample['DataSet'] == DataSetLabel]
-        sample_index_brackets = df_sliced.iloc[[0,-1],].index
+        try:
+            df_sliced = df_sample[df_sample['DataSet'] == DataSetLabel]
+            sample_index_brackets = df_sliced.iloc[[0,-1],].index
+        except IndexError:
+            raise Exception('The DataSet label extracted from the peak table csv files (%s) is not found in the SampleLog.csv' % DataSetLabel)
         
         # Runs through the recursion loop twice
         # The first time it begins iterating from the first (lowest) index in the DataSet and counts backward (down)
