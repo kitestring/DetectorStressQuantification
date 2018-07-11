@@ -4,7 +4,7 @@ from SQL import Postgres
 import credentials
 import os
 import pprint
-import pandas as pd
+import pandas as pd #@UnusedImport
 
 class Controls():
 	
@@ -17,7 +17,9 @@ class Controls():
 		self.commandDict = {
 			'help': [self.basicInstructions, "Lists each command."],
 			'exit': [self.exitProgram, "Exits the program."],
-			'mine': [self.extractData, 'Mines the data from all the csv files found in the\n\t\tcurrent working directory.']
+			'mine': [self.extractData, 'Mines the data from all the csv files found in the\n\t\tcurrent working directory.'],
+			'sen': [self.getOFNSensitivityData, 'Generate the OFN sensitivity plots and tables.'],
+			'lin': [self.getOFNLinearityData, 'Generate the OFN sensitivity plots and tables.']
 			}
 		
 		self.runProgram = True
@@ -63,7 +65,15 @@ class Controls():
 			commandString += '\n%s\t\t%s' % (key, self.commandDict[key][1])
 		
 		return commandString
+	
+	def getOFNLinearityData(self):
+		ofn_linearity_df = self.db.OFNLinearityData()
+		self.printDataStructure(ofn_linearity_df)
 		
+	def getOFNSensitivityData(self):
+		ofn_sensitivity_df = self.db.OFNSensitivityData_20fg()
+		self.printDataStructure(ofn_sensitivity_df)
+	
 	def extractData(self):
 		# Gets a dictionary containing all the csv data.  Each value is a pandas dataframe
 		# {'PeakTable':df_PeakTable, 'Sample':df_Sample, 'IDL':df_IDL, 'MS':df_MS, 'GC':df_GC}

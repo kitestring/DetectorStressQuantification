@@ -20,6 +20,96 @@ class Postgres():
         self.cur_psql.execute("SELECT * FROM IDL")
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
+        
+    def OFNSensitivityData_20fg(self):
+        sql_statement = '''
+            WITH OFN_Sensitivity AS (    
+                SELECT
+                    Sample.DataSet_id as SetName,
+                    DataSet.Instrument as Inst,
+                    MS_Method.DetectorOffset_Volts as Offset_volts,
+                    CASE
+                        WHEN PeakTable.Analyte = 'Perfluoronaphthalene' THEN 'OFN'
+                        ELSE PeakTable.Analyte
+                    END as Analyte,
+                    CASE PeakTable.DataProcessingType
+                        WHEN 'Target' THEN 'TAF'
+                        ELSE 'PF'
+                    END as DP_TYPE,
+                    PeakTable.Concentration_pg as pg_OnColumn,
+                    CASE  
+                        WHEN PeakTable.DataProcessingType = 'Target' THEN PeakTable.Area
+                        ELSE NULL
+                    END as Area,
+                    CASE 
+                        WHEN PeakTable.DataProcessingType = 'Target' THEN PeakTable.Quant_SN
+                        ELSE NULL
+                    END as Quant_SN ,
+                    NULLIF(PeakTable.Similairity,0) as Similarity
+                FROM PeakTable
+                INNER JOIN Sample ON Sample.Sample_id = PeakTable.Sample_id 
+                INNER JOIN DataSet ON DataSet.DataSet_ID = Sample.DataSet_ID
+                INNER JOIN MS_Method ON MS_Method.MS_Method_ID = DataSet.MS_Method_id
+                WHERE 
+                    PeakTable.Concentration_pg = '0.02' AND (
+                    PeakTable.Analyte = 'OFN' OR
+                    PeakTable.Analyte = 'Perfluoronaphthalene')
+            ),
+            
+            OFN_Sensitivity_Aggregation as (
+                SELECT
+                    SetName,
+                    Inst,
+                    Offset_volts,
+                    Analyte,
+                    pg_OnColumn,
+                    AVG(Area) as Ave_Area,
+                    STDDEV(Area) as StdDev_Area,
+                    AVG(Quant_SN) as Ave_Quant_SN,
+                    STDDEV(Quant_SN) as StdDev_Quant_SN,
+                    AVG(Similarity) as Ave_Similarity,
+                    STDDEV(Similarity) as StdDev_Similarity
+                FROM OFN_Sensitivity
+                GROUP BY 1,2,3,4,5
+            )    
+                
+            SELECT
+                Inst,
+                Offset_volts,
+                IDL.IDL_Value as IDL,
+                Ave_Area,
+                StdDev_Area,
+                ROUND(StdDev_Area/Ave_Area*100,3) as RSD_Area,
+                Ave_Quant_SN,
+                StdDev_Quant_SN,
+                ROUND(StdDev_Quant_SN/Ave_Quant_SN*100,3) as RSD_Quant_SN,
+                Ave_Similarity,
+                StdDev_Similarity,
+                ROUND(StdDev_Similarity/Ave_Similarity*100,3) as RSD_Similarity
+            FROM OFN_Sensitivity_Aggregation
+            INNER JOIN DataSet ON DataSet.DataSet_id = SetName
+            INNER JOIN IDL ON IDL.IDL_id = DataSet.IDL_id
+            ORDER BY 2,1 ASC;
+        '''
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
+    
+    def OFNLinearityData(self):
+        
+        sql_statement= '''
+            SELECT
+                DataSet.Instrument as Inst,
+                MS_Method.DetectorOffset_Volts as Offset_volts,
+                DynamicRange.OrdersOfMagnitude as Orders,
+                DynamicRange.ConcRange_pg_Low as ConcRange_pg_Low,
+                DynamicRange.ConcRange_pg_High as ConcRange_pg_High,
+                DynamicRange.Correlation_Coefficient_r as r
+            FROM DataSet
+            INNER JOIN MS_Method ON MS_Method.MS_Method_id = DataSet.MS_Method_id
+            INNER JOIN DynamicRange ON DynamicRange.DR_id = DataSet.DR_id;
+        '''
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
     
     def IsMethodUnique(self, MethodType, MethodID):
         # MethodType must be GC or MS only
