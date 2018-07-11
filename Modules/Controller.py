@@ -20,7 +20,9 @@ class Controls():
 			'mine': [self.extractData, 'Mines the data from all the csv files found in the\n\t\tcurrent working directory.'],
 			'osen': [self.getOFNSensitivityData, 'Generate the OFN sensitivity plots and tables.'],
 			'olin': [self.getOFNLinearityData, 'Generate the OFN sensitivity plots and tables.'],
-			'ostat': [self.getOFNIonStats, 'Generate OFN Ion Stats data visualizations']
+			'ostat': [self.getOFNIonStats, 'Generate OFN Ion Stats data visualizations'],
+			'algo': [self.getAlkaneGOIonStats, "Generate Alkane GO Ion Stats data visualizations"],
+			'aldm': [self.getAlkaneDMIonStats, "Generate Alkane DM Ion Stats data visualizations"]
 			}
 		
 		self.runProgram = True
@@ -66,6 +68,14 @@ class Controls():
 			commandString += '\n%s\t\t%s' % (key, self.commandDict[key][1])
 		
 		return commandString
+	
+	def getAlkaneDMIonStats(self):
+		alk_DM_ion_stats = None
+		self.printDataStructure(alk_DM_ion_stats)
+	
+	def getAlkaneGOIonStats(self):
+		alk_GO_ion_stats = self.db.AlkGOIonStats()
+		self.printDataStructure(alk_GO_ion_stats)
 	
 	def getOFNIonStats(self):
 		ofn_ion_stats = self.db.OFNIonStats()
