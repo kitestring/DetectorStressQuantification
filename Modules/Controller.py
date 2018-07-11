@@ -18,8 +18,9 @@ class Controls():
 			'help': [self.basicInstructions, "Lists each command."],
 			'exit': [self.exitProgram, "Exits the program."],
 			'mine': [self.extractData, 'Mines the data from all the csv files found in the\n\t\tcurrent working directory.'],
-			'sen': [self.getOFNSensitivityData, 'Generate the OFN sensitivity plots and tables.'],
-			'lin': [self.getOFNLinearityData, 'Generate the OFN sensitivity plots and tables.']
+			'osen': [self.getOFNSensitivityData, 'Generate the OFN sensitivity plots and tables.'],
+			'olin': [self.getOFNLinearityData, 'Generate the OFN sensitivity plots and tables.'],
+			'ostat': [self.getOFNIonStats, 'Generate OFN Ion Stats data visualizations']
 			}
 		
 		self.runProgram = True
@@ -65,6 +66,10 @@ class Controls():
 			commandString += '\n%s\t\t%s' % (key, self.commandDict[key][1])
 		
 		return commandString
+	
+	def getOFNIonStats(self):
+		ofn_ion_stats = self.db.OFNIonStats()
+		self.printDataStructure(ofn_ion_stats)
 	
 	def getOFNLinearityData(self):
 		ofn_linearity_df = self.db.OFNLinearityData()

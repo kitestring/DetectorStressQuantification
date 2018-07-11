@@ -21,6 +21,156 @@ class Postgres():
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
         
+    def OFNIonStats(self):
+        sql_statement = """
+            WITH DM_IonStats AS ( 
+                 SELECT
+                    Sample.DateTimeStamp as DT,
+                    DataSet.DataSet_id as SetName,
+                    DataSet.Instrument as Inst,
+                    MS_Method.DetectorOffset_Volts as Offset_volts,
+                    IonStats.Voltage as DM_DetVoltage,
+                    IonStats.AreaPerIon as DM_AreaPerIon
+                FROM Sample
+                INNER JOIN DataSet ON DataSet.DataSet_id = Sample.DataSet_id
+                INNER JOIN IonStats ON IonStats.IonStats_id = Sample.IonStats_id
+                INNER JOIN MS_Method ON MS_Method.MS_Method_ID = DataSet.MS_Method_id
+                WHERE 
+                    Sample.SampleType = 'Detector Measurement' AND
+                    DataSet.DataSet_id LIKE 'OFN%'
+            ),
+            
+            DM_IonStats_rownums AS (
+                SELECT * FROM (
+                            SELECT
+                                DT,
+                                SetName,
+                                Inst, 
+                                Offset_volts, 
+                                DM_DetVoltage, 
+                                DM_AreaPerIon, 
+                                row_number() 
+                                    over (partition by SetName Order By DT ASC) as rownum from DM_IonStats
+                            ) as DMtemp
+                Order By SetName, rownum ASC
+            ),
+                        
+            DM_IonStats_Start_End_Separated AS (
+                SELECT
+                    SetName,
+                    Inst,
+                    Offset_volts,
+                    DM_DetVoltage,
+                    CASE
+                        WHEN rownum <= 3 THEN DM_AreaPerIon
+                        ELSE NULL
+                    END as Starting_DM_API,
+                    CASE
+                        WHEN rownum >= 4 THEN DM_AreaPerIon
+                        ELSE NULL
+                    END as Ending_DM_API
+                FROM DM_IonStats_rownums
+            ),
+            
+            DM_IonStats_Final AS (
+                SELECT
+                    SetName,
+                    Inst,
+                    Offset_volts,
+                    DM_DetVoltage,
+                    CAST(AVG(Starting_DM_API) as FLOAT(1)) as Ave_Starting_DM_API,
+                    CAST(AVG(Ending_DM_API) as FLOAT(1)) as Ave_Ending_DM_API
+                FROM DM_IonStats_Start_End_Separated
+                GROUP BY Inst, Offset_volts, DM_DetVoltage, SetName
+                ORDER BY Offset_volts, Inst ASC
+            ),
+                        
+            GO_IonStats AS (
+                 SELECT
+                    Sample.DateTimeStamp as DT,
+                    DataSet.DataSet_id as SetName,
+                    DataSet.Instrument as Inst,
+                    MS_Method.DetectorOffset_Volts as Offset_volts,
+                    IonStats.Voltage as GO_DetVoltage,
+                    IonStats.AreaPerIon as GO_AreaPerIon
+                FROM Sample
+                INNER JOIN DataSet ON DataSet.DataSet_id = Sample.DataSet_id
+                INNER JOIN IonStats ON IonStats.IonStats_id = Sample.IonStats_id
+                INNER JOIN MS_Method ON MS_Method.MS_Method_ID = DataSet.MS_Method_id
+                WHERE 
+                    Sample.SampleType = 'Gain Optimization' AND
+                    DataSet.DataSet_id LIKE 'OFN%'
+            ),
+            
+            GO_IonStats_rownums AS (
+                SELECT * FROM (
+                            SELECT
+                                DT,
+                                SetName,
+                                Inst, 
+                                Offset_volts, 
+                                GO_DetVoltage, 
+                                GO_AreaPerIon, 
+                                row_number() 
+                                    over (partition by SetName Order By DT ASC) as rownum from GO_IonStats
+                            ) as GOtemp
+                Order By SetName, rownum ASC
+            ),
+            
+            GO_IonStats_Start_End_Separated AS (
+                SELECT
+                    SetName,
+                    Inst,
+                    Offset_volts,
+                    CASE
+                        WHEN rownum = 1 THEN GO_DetVoltage
+                        ELSE NULL
+                    END as Starting_GO_DV,
+                    CASE
+                        WHEN rownum = 1 THEN GO_AreaPerIon
+                        ELSE NULL
+                    END as Starting_GO_API,
+                    CASE
+                        WHEN rownum = 2 THEN GO_DetVoltage
+                        ELSE NULL
+                    END as Ending_GO_DV,
+                    CASE
+                        WHEN rownum = 2 THEN GO_AreaPerIon
+                        ELSE NULL
+                    END as Ending_GO_API
+                FROM GO_IonStats_rownums
+            ),
+            
+            GO_IonStats_Final AS (
+                SELECT
+                    SetName,
+                    Inst,
+                    Offset_volts,
+                    SUM(Starting_GO_DV) AS Starting_GO_DV,
+                    SUM(Starting_GO_API) AS Starting_GO_API,
+                    SUM(Ending_GO_DV) AS Ending_GO_DV,
+                    SUM(Ending_GO_API) AS Ending_GO_API
+                FROM GO_IonStats_Start_End_Separated
+                GROUP BY Inst, Offset_volts, SetName
+                ORDER BY Offset_volts, Inst ASC            
+            )
+            
+            SELECT 
+                DM_IonStats_Final.Inst,
+                DM_IonStats_Final.Offset_volts,
+                GO_IonStats_Final.Starting_GO_DV as Start_GO_DV,
+                GO_IonStats_Final.Starting_GO_API as Start_GO_API,
+                DM_IonStats_Final.Ave_Starting_DM_API as Ave_Start_DM_API,
+                DM_IonStats_Final.Ave_Ending_DM_API as Ave_End_DM_API,
+                GO_IonStats_Final.Ending_GO_DV as End_GO_DV,
+                GO_IonStats_Final.Ending_GO_API as End_GO_API
+            FROM DM_IonStats_Final
+            INNER JOIN GO_IonStats_Final ON GO_IonStats_Final.SetName = DM_IonStats_Final.SetName
+            ORDER BY DM_IonStats_Final.Offset_volts, DM_IonStats_Final.Inst;
+        """
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
+        
     def OFNSensitivityData_20fg(self):
         sql_statement = '''
             WITH OFN_Sensitivity AS (    
