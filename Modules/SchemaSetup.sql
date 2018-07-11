@@ -60,7 +60,7 @@ CREATE TABLE PeakTable (
 	Area BIGINT,
 	Height BIGINT,
 	FWHH_S FLOAT(6),
-	Similairity SMALLINT,
+	Similarity SMALLINT,
 	RT_1D FLOAT(3),
 	RT_2D FLOAT(3),
 	PEAK_SN INTEGER,
