@@ -21,7 +21,84 @@ class Postgres():
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
         
+    def AlkGOIonStats(self):
+        sql_statement = """
+            WITH GO_IonStats AS (
+                 SELECT
+                    Sample.DateTimeStamp as DT,
+                    DataSet.DataSet_id as SetName,
+                    DataSet.Instrument as Inst,
+                    MS_Method.DetectorOffset_Volts as Offset_volts,
+                    IonStats.Voltage as GO_DetVoltage,
+                    IonStats.AreaPerIon as GO_AreaPerIon
+                FROM Sample
+                INNER JOIN DataSet ON DataSet.DataSet_id = Sample.DataSet_id
+                INNER JOIN IonStats ON IonStats.IonStats_id = Sample.IonStats_id
+                INNER JOIN MS_Method ON MS_Method.MS_Method_ID = DataSet.MS_Method_id
+                WHERE 
+                    Sample.SampleType = 'Gain Optimization' AND
+                    DataSet.DataSet_id LIKE 'Alk%'
+            ),
+            
+            GO_IonStats_rownums AS (
+                SELECT * FROM (
+                            SELECT
+                                DT,
+                                SetName,
+                                Inst, 
+                                Offset_volts, 
+                                GO_DetVoltage, 
+                                GO_AreaPerIon, 
+                                row_number() 
+                                    over (partition by SetName Order By DT ASC) as rownum from GO_IonStats
+                            ) as GOtemp
+                Order By SetName, rownum ASC
+            ),
+            
+            GO_IonStats_Start_End_Separated AS (
+                SELECT
+                    SetName,
+                    Inst,
+                    Offset_volts,
+                    CASE
+                        WHEN rownum = 1 THEN GO_DetVoltage
+                        ELSE NULL
+                    END as Starting_GO_DV,
+                    CASE
+                        WHEN rownum = 1 THEN GO_AreaPerIon
+                        ELSE NULL
+                    END as Starting_GO_API,
+                    CASE
+                        WHEN rownum = 2 THEN GO_DetVoltage
+                        ELSE NULL
+                    END as Ending_GO_DV,
+                    CASE
+                        WHEN rownum = 2 THEN GO_AreaPerIon
+                        ELSE NULL
+                    END as Ending_GO_API
+                FROM GO_IonStats_rownums
+            )
+            
+            SELECT
+                SetName,
+                Inst,
+                Offset_volts,
+                SUM(Starting_GO_DV) AS Starting_GO_DV,
+                SUM(Starting_GO_API) AS Starting_GO_API,
+                SUM(Ending_GO_DV) AS Ending_GO_DV,
+                SUM(Ending_GO_API) AS Ending_GO_API
+            FROM GO_IonStats_Start_End_Separated
+            GROUP BY Inst, Offset_volts, SetName
+            ORDER BY Offset_volts, Inst ASC;
+        """
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
+        
     def OFNIonStats(self):
+        # for help with the Top N Per Group in SQL or Grouped LIMIT in PostgreSQL: show the first N rows for each group
+        # https://gist.github.com/tototoshi/4376938
+        # https://spin.atomicobject.com/2016/03/12/select-top-n-per-group-postgresql/
+
         sql_statement = """
             WITH DM_IonStats AS ( 
                  SELECT
