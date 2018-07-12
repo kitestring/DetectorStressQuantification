@@ -21,6 +21,49 @@ class Postgres():
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
         
+    def AlkAveDMData(self):
+        sql_statement = """
+            WITH DMIonStatsData AS (
+                SELECT
+                    Sample.DateTimeStamp as TS,
+                    DataSet.DataSet_id as SetName,
+                    IonStats.Voltage as DetectorVoltage,
+                    IonStats.AreaPerion as API
+                FROM Sample
+                INNER JOIN DataSet ON DataSet.DataSet_id = Sample.DataSet_id
+                INNER JOIN IonStats ON IonStats.IonStats_id =  Sample.IonStats_id
+                 WHERE 
+                    Sample.SampleType = 'Detector Measurement' AND
+                    DataSet.DataSet_id LIKE 'Alk%'
+                Order By SetName ASC
+            ),
+            
+            DMIonStatsData_rownums AS (
+                SELECT * FROM (
+                    SELECT
+                        TS,
+                        SetName,
+                        DetectorVoltage,
+                        API,
+                        row_number()
+                            over(partition by SetName Order By TS ASC) AS rownum FROM DMIonStatsData
+                    ) AS DMTemp
+                ORDER BY SetName, TS ASC
+            )
+            
+            
+            SELECT
+                SetName,
+                DetectorVoltage,
+                AVG(API) AS Ave_API,
+                FLOOR((rownum - 1) / 3) AS DM_API_Group
+            FROM DMIonStatsData_rownums
+            Group By SetName, DM_API_Group, DetectorVoltage
+            ORDER BY SetName, DM_API_Group ASC;
+        """
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
+        
     def AlkInjectionReps(self):
         sql_statement = """
             WITH SampleData AS (

@@ -70,6 +70,7 @@ class Controls():
 		return commandString
 	
 	def getAlkaneDMIonStats(self):
+		# Get the reps versus concentration data
 		alk_InjectionReps_df = self.db.AlkInjectionReps()
 		df_cleaner = Extract(self.csvDirectory)
 		
@@ -81,7 +82,7 @@ class Controls():
 		alk_InjectionReps_df = pd.concat([alk_InjectionReps_df, df_ParcedSample_Split], axis=1)
 		alk_InjectionReps_df['Concentration_pg'] = alk_InjectionReps_df['Concentration_pg'].astype(dtype='float64')
 		
-		# Create a new column (Cumultive_Injections) by summing up the reps column for each DataSet
+		# Create a new column (Cumulative_Injections) by summing up the reps column for each DataSet
 		injections = []
 		active_dataset = ''
 		
@@ -95,11 +96,21 @@ class Controls():
 			injections_subtotal += int(r[1]['reps'])
 			injections.append(injections_subtotal)
 			
-		alk_InjectionReps_df['Cumultive_Injections'] = injections
+		alk_InjectionReps_df['Cumulative_Injections'] = injections
 		alk_InjectionReps_df.drop(columns=['setname','seq','reps'], inplace=True)
-
-		self.printDataStructure(alk_InjectionReps_df)
-	
+		
+		# Get the average API & detector voltage data
+		alk_ave_DM_df = self.db.AlkAveDMData()
+		
+		# Combine the reps versus concentration data and the average API & detector voltage data
+		# for each data set.
+		reps_df = alk_InjectionReps_df[alk_InjectionReps_df['DataSet'] == 'Alk_+250v_b_PV1'][['Concentration_pg' ,'Cumulative_Injections']].copy()
+		ionstats_df = alk_ave_DM_df[alk_ave_DM_df['setname'] == 'Alk_+250v_b_PV1'].copy()
+		
+		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(reps_df, ionstats_df)
+		
+		print(combined_df)
+		
 	def getAlkaneGOIonStats(self):
 		alk_GO_ion_stats = self.db.AlkGOIonStats()
 		self.printDataStructure(alk_GO_ion_stats)
