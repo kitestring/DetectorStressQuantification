@@ -21,7 +21,7 @@ class Postgres():
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
         
-    def AlkDMIonStats(self):
+    def AlkInjectionReps(self):
         sql_statement = """
             WITH SampleData AS (
                 SELECT
