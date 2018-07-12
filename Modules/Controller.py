@@ -70,8 +70,35 @@ class Controls():
 		return commandString
 	
 	def getAlkaneDMIonStats(self):
-		alk_DM_ion_stats = self.db.AlkDMIonStats()
-		self.printDataStructure(alk_DM_ion_stats)
+		alk_InjectionReps_df = self.db.AlkInjectionReps()
+		df_cleaner = Extract(self.csvDirectory)
+		
+		# Extract the DataSet name and concentration from Sample column creating 2 new columns
+		alk_InjectionReps_df.rename(index=str, columns={"s_name": "Sample"}, inplace=True)
+		Series_ParcedSample = alk_InjectionReps_df.apply(df_cleaner.ParcePeakTableSampleName, axis=1)
+		df_ParcedSample_Split = Series_ParcedSample.str.split(pat=',', expand=True)
+		df_ParcedSample_Split.columns = ['DataSet','Concentration_pg']
+		alk_InjectionReps_df = pd.concat([alk_InjectionReps_df, df_ParcedSample_Split], axis=1)
+		alk_InjectionReps_df['Concentration_pg'] = alk_InjectionReps_df['Concentration_pg'].astype(dtype='float64')
+		
+		# Create a new column (Cumultive_Injections) by summing up the reps column for each DataSet
+		injections = []
+		active_dataset = ''
+		
+		for r in alk_InjectionReps_df.iterrows():
+			
+			# This resets the counting for each DataSet
+			if r[1]['DataSet'] != active_dataset:
+				active_dataset = r[1]['DataSet']
+				injections_subtotal = 0
+				
+			injections_subtotal += int(r[1]['reps'])
+			injections.append(injections_subtotal)
+			
+		alk_InjectionReps_df['Cumultive_Injections'] = injections
+		alk_InjectionReps_df.drop(columns=['setname','seq','reps'], inplace=True)
+
+		self.printDataStructure(alk_InjectionReps_df)
 	
 	def getAlkaneGOIonStats(self):
 		alk_GO_ion_stats = self.db.AlkGOIonStats()
