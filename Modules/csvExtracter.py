@@ -496,8 +496,15 @@ class Extract():
         # reindex the df and return the result
         return df_sample.reset_index()
     
-    
-    
+    def CombineAlkConcRepsAndDMIonStats(self, reps_df, ionstats_df):
+        reps_df_outerjoinindex = [i+1 for i in range(len(reps_df))]
+        ionstats_df_outerjoinindex = [i for i in range(len(ionstats_df))]
+        reps_df['OuterJoinIndex'] = reps_df_outerjoinindex
+        ionstats_df['OuterJoinIndex'] = ionstats_df_outerjoinindex
+        
+        combined_df = pd.merge(ionstats_df, reps_df, on='OuterJoinIndex', how='outer')
+        
+        return combined_df.fillna(0).drop(columns=['OuterJoinIndex'])
     
     
     
