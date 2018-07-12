@@ -21,6 +21,50 @@ class Postgres():
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
         
+    def AlkDMIonStats(self):
+        sql_statement = """
+            WITH SampleData AS (
+                SELECT
+                    Sample.DateTimeStamp as DT,
+                    Sample.DataSet_id as SetName,
+                    CASE
+                        WHEN RIGHT(Sample.SampleName,2) LIKE ':%' THEN LEFT(Sample.SampleName,-2)
+                        ELSE Sample.SampleName
+                    END AS S_Name
+                FROM Sample
+                WHERE 
+                    Sample.SampleName LIKE 'Alk%'
+                ORDER BY SetName, DT ASC
+            ),
+            
+            SampleData_rownums AS ( 
+                SELECT * FROM (
+                    SELECT
+                        DT,
+                        SetName,
+                        S_Name,
+                        row_number()
+                            over (partition by SetName Order By DT ASC) as rownum from SampleData
+                    ) as SampleTemp
+                ORDER BY SetName, DT ASC
+            )
+            
+            SELECT 
+                SetName,
+                DataSet.Instrument as Inst,
+                MS_Method.DetectorOffset_Volts as Offset_volts,
+                S_Name,
+                COUNT(S_Name) as Reps,
+                SUM(rownum) as Seq
+            FROM SampleData_rownums
+            INNER JOIN DataSet ON DataSet.DataSet_id = SetName
+            INNER JOIN MS_Method ON MS_Method.MS_Method_ID = DataSet.MS_Method_id
+            Group by SetName, S_Name, Inst, Offset_volts
+            ORDER BY SetName, Seq;        
+        """
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
+        
     def AlkGOIonStats(self):
         sql_statement = """
             WITH GO_IonStats AS (
