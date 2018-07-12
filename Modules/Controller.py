@@ -70,7 +70,7 @@ class Controls():
 		return commandString
 	
 	def getAlkaneDMIonStats(self):
-		alk_DM_ion_stats = None
+		alk_DM_ion_stats = self.db.AlkDMIonStats()
 		self.printDataStructure(alk_DM_ion_stats)
 	
 	def getAlkaneGOIonStats(self):
