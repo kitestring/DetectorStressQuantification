@@ -219,6 +219,10 @@ class Extract():
         
         df = pd.read_csv(Sample_Log_file_path)
         
+        # Clear empty rows based upon 'Date'; 'Date' is used because any row that contains 
+        # any data at all will have a value for 'Date'
+        df.dropna(subset=['Date'], inplace=True)
+       
         # Convert time to 24 hour clock, combine date & time columns then convert dtype to datetime
         df['Time24'] = df.apply(self.Convert12hrto24hrTime, axis=1)
         df['DateTime'] = df['Date'] + " " + df['Time24']
