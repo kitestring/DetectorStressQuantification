@@ -78,9 +78,9 @@ class Controls():
 		alk_InjectionReps_df.rename(index=str, columns={"s_name": "Sample"}, inplace=True)
 		Series_ParcedSample = alk_InjectionReps_df.apply(df_cleaner.ParcePeakTableSampleName, axis=1)
 		df_ParcedSample_Split = Series_ParcedSample.str.split(pat=',', expand=True)
-		df_ParcedSample_Split.columns = ['DataSet','Concentration_pg']
+		df_ParcedSample_Split.columns = ['DataSet','Conc_pg']
 		alk_InjectionReps_df = pd.concat([alk_InjectionReps_df, df_ParcedSample_Split], axis=1)
-		alk_InjectionReps_df['Concentration_pg'] = alk_InjectionReps_df['Concentration_pg'].astype(dtype='float64')
+		alk_InjectionReps_df['Conc_pg'] = alk_InjectionReps_df['Conc_pg'].astype(dtype='float64')
 		
 		# Create a new column (Cumulative_Injections) by summing up the reps column for each DataSet
 		injections = []
@@ -96,20 +96,29 @@ class Controls():
 			injections_subtotal += int(r[1]['reps'])
 			injections.append(injections_subtotal)
 			
-		alk_InjectionReps_df['Cumulative_Injections'] = injections
+		alk_InjectionReps_df['Cumulative_Inj'] = injections
 		alk_InjectionReps_df.drop(columns=['setname','seq','reps'], inplace=True)
 		
 		# Get the average API & detector voltage data
 		alk_ave_DM_df = self.db.AlkAveDMData()
+		alk_ave_DM_df.rename(index=str, columns={"setname": "DataSet"}, inplace=True)
 		
 		# Combine the reps versus concentration data and the average API & detector voltage data
 		# for each data set.
-		reps_df = alk_InjectionReps_df[alk_InjectionReps_df['DataSet'] == 'Alk_+250v_b_PV1'][['Concentration_pg' ,'Cumulative_Injections']].copy()
-		ionstats_df = alk_ave_DM_df[alk_ave_DM_df['setname'] == 'Alk_+250v_b_PV1'].copy()
+		print(df_cleaner.CombineAlkConcRepsAndDMIonStats(alk_InjectionReps_df.copy(), alk_ave_DM_df.copy()))
 		
-		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(reps_df, ionstats_df)
 		
-		print(combined_df)
+# 		reps_df = alk_InjectionReps_df[alk_InjectionReps_df['DataSet'] == 'Alk_+000v_a_PV2'][['Concentration_pg' ,'Cumulative_Injections']].copy()
+# 		ionstats_df = alk_ave_DM_df[alk_ave_DM_df['setname'] == 'Alk_+000v_a_PV2'].copy()
+# 		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(reps_df, ionstats_df)
+# 		
+# 		print(combined_df)
+		
+# 		reps_df = alk_InjectionReps_df[alk_InjectionReps_df['DataSet'] == 'Alk_+150v_a_PV2'][['Concentration_pg' ,'Cumulative_Injections']].copy()
+# 		ionstats_df = alk_ave_DM_df[alk_ave_DM_df['setname'] == 'Alk_+150v_a_PV2'].copy()
+# 		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(reps_df, ionstats_df)
+# 		
+# 		print(combined_df)
 		
 	def getAlkaneGOIonStats(self):
 		alk_GO_ion_stats = self.db.AlkGOIonStats()
