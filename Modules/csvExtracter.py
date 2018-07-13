@@ -497,24 +497,26 @@ class Extract():
         return df_sample.reset_index()
     
     def CombineAlkConcRepsAndDMIonStats(self, reps_df, ionstats_df):
-        reps_df_outerjoinindex = [i+1 for i in range(len(reps_df))]
-        ionstats_df_outerjoinindex = [i for i in range(len(ionstats_df))]
-        reps_df['OuterJoinIndex'] = reps_df_outerjoinindex
-        ionstats_df['OuterJoinIndex'] = ionstats_df_outerjoinindex
         
-        combined_df = pd.merge(ionstats_df, reps_df, on='OuterJoinIndex', how='outer')
+        DataSets_lst = reps_df['DataSet'].unique()
+        combined_df = pd.DataFrame()
         
-        return combined_df.fillna(0).drop(columns=['OuterJoinIndex'])
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        for dset in DataSets_lst:
+            
+            reps_df_sliced = reps_df[reps_df['DataSet'] == dset][['inst',  'offset_volts', 'Conc_pg' ,'Cumulative_Inj']].copy()
+            ionstats_df_sliced = ionstats_df[ionstats_df['DataSet'] == dset].copy()
+            
+            reps_df_outerjoinindex = [i+1 for i in range(len(reps_df_sliced))]
+            ionstats_df_outerjoinindex = [i for i in range(len(ionstats_df_sliced))]
+            
+            reps_df_sliced['OuterJoinIndex'] = reps_df_outerjoinindex
+            ionstats_df_sliced['OuterJoinIndex'] = ionstats_df_outerjoinindex
+            
+            df = pd.merge(ionstats_df_sliced, reps_df_sliced, on='OuterJoinIndex', how='outer')
+            df = df.fillna(0).drop(columns=['OuterJoinIndex', 'dm_api_group'])
+            
+            combined_df = pd.concat([combined_df,df])
+            
+        combined_df.rename(index=str, columns={"detectorvoltage": "Det_Volts"}, inplace=True)
+        
+        return combined_df
