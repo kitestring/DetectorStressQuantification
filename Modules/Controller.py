@@ -1,6 +1,7 @@
 from csvExtracter import Extract
 from CLI import ConcoleGUI 
 from SQL import Postgres
+from PlotMaker import Plotter
 import credentials
 import os
 import pprint
@@ -105,20 +106,12 @@ class Controls():
 		
 		# Combine the reps versus concentration data and the average API & detector voltage data
 		# for each data set.
-		print(df_cleaner.CombineAlkConcRepsAndDMIonStats(alk_InjectionReps_df.copy(), alk_ave_DM_df.copy()))
+		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(alk_InjectionReps_df.copy(), alk_ave_DM_df.copy())
+		self.VisualizeAlkDMIonStats(combined_df)
 		
-		
-# 		reps_df = alk_InjectionReps_df[alk_InjectionReps_df['DataSet'] == 'Alk_+000v_a_PV2'][['Concentration_pg' ,'Cumulative_Injections']].copy()
-# 		ionstats_df = alk_ave_DM_df[alk_ave_DM_df['setname'] == 'Alk_+000v_a_PV2'].copy()
-# 		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(reps_df, ionstats_df)
-# 		
-# 		print(combined_df)
-		
-# 		reps_df = alk_InjectionReps_df[alk_InjectionReps_df['DataSet'] == 'Alk_+150v_a_PV2'][['Concentration_pg' ,'Cumulative_Injections']].copy()
-# 		ionstats_df = alk_ave_DM_df[alk_ave_DM_df['setname'] == 'Alk_+150v_a_PV2'].copy()
-# 		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(reps_df, ionstats_df)
-# 		
-# 		print(combined_df)
+	def VisualizeAlkDMIonStats(self, df):
+		plot_builder = Plotter()
+		plot_builder.AlkDMIonStatsPlot(df)
 		
 	def getAlkaneGOIonStats(self):
 		alk_GO_ion_stats = self.db.AlkGOIonStats()
