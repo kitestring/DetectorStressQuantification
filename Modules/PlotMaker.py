@@ -1,6 +1,7 @@
 import pandas as pd
 import statistics
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 # from sklearn import datasets, linear_model
 # from sklearn.metrics import mean_squared_error, r2_score
@@ -12,7 +13,8 @@ class Plotter():
 	
 	def AlkDMIonStatsPlot(self, df):
 		DataSets_lst = df['DataSet'].unique()
-		fig = plt.figure(figsize=(18,9))
+		fig = plt.figure(figsize=(15.5,9))
+		ax = fig.add_subplot(1,1,1)
 		
 		for n, dset in enumerate(DataSets_lst):
 			df_sliced = df[df['DataSet'] == dset].copy()
@@ -21,11 +23,17 @@ class Plotter():
 			dv = df_sliced['Det_Volts'].iloc[2]
 			curve_label = 'Inst: {i} - Offset: +{v} v = {d} v'.format(i=instrument, v=offset, d=dv)
 			
-			plt.scatter(df_sliced['Cumulative_Inj'], df_sliced['ave_api'], color=self.color_codes[n], label=curve_label)
+			ax.scatter(df_sliced['Cumulative_Inj'], df_sliced['ave_api'], color=self.color_codes[n], label=curve_label)
+		
+		for key,spine in ax.spines.items():
+			spine.set_visible(False)
 		
 		plt.ylabel('Ave. Aera Per Ion')
 		plt.xlabel('Sample Injections')
 		plt.title('Tracking Area Per Ion via Detector Measurement\nOver ~48 Hours of Continuous Sample Acquisition')
-			
-		plt.legend(loc='upper right')
+
+# 		plt.tick_params(bottom="off", top="off", left="off", right="off")
+		legend_h_offset, legend_v_offset = 1.25, 0.85
+		plt.legend(loc='center right', bbox_to_anchor=(legend_h_offset, legend_v_offset))
+		plt.savefig('test', bbox_inches='tight')
 		plt.show()
