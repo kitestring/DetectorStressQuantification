@@ -116,18 +116,25 @@ class Controls():
 	def getAlkaneGOIonStats(self):
 		alk_GO_ion_stats = self.db.AlkGOIonStats()
 		self.printDataStructure(alk_GO_ion_stats)
+		self.DataFrameToCSV(alk_GO_ion_stats,'Alkane_GO_IonStats_Results',True)
+	
+	def DataFrameToCSV(self, df, FileName, include_index):
+		df.to_csv(FileName + '.csv', index=include_index, encoding='utf-8')
 	
 	def getOFNIonStats(self):
 		ofn_ion_stats = self.db.OFNIonStats()
 		self.printDataStructure(ofn_ion_stats)
+		self.DataFrameToCSV(ofn_ion_stats, 'OFN_Ion_Stats_Results', True)
 	
 	def getOFNLinearityData(self):
 		ofn_linearity_df = self.db.OFNLinearityData()
 		self.printDataStructure(ofn_linearity_df)
+		self.DataFrameToCSV(ofn_linearity_df, 'OFN_Linearity_Results', True)
 		
 	def getOFNSensitivityData(self):
 		ofn_sensitivity_df = self.db.OFNSensitivityData_20fg()
 		self.printDataStructure(ofn_sensitivity_df)
+		self.DataFrameToCSV(ofn_sensitivity_df, 'OFN_Sensitivity_Results', True)
 	
 	def extractData(self):
 		# Gets a dictionary containing all the csv data.  Each value is a pandas dataframe
