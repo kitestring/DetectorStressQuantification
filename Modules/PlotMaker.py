@@ -1,10 +1,8 @@
-import pandas as pd
-import statistics
+import pandas as pd #@UnusedImport
+import statistics #@UnusedImport
 import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
-# from sklearn import datasets, linear_model
-# from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib #@UnusedImport
+import numpy as np #@UnusedImport
 
 class Plotter():
 	def __init__(self):
@@ -23,17 +21,21 @@ class Plotter():
 			dv = df_sliced['Det_Volts'].iloc[2]
 			curve_label = 'Inst: {i} - Offset: +{v} v = {d} v'.format(i=instrument, v=offset, d=dv)
 			
-			ax.scatter(df_sliced['Cumulative_Inj'], df_sliced['ave_api'], color=self.color_codes[n], label=curve_label)
+			ax.plot(df_sliced['Cumulative_Inj'], df_sliced['ave_api'], color=self.color_codes[n], label=curve_label)
 		
-		for key,spine in ax.spines.items():
-			spine.set_visible(False)
+# 		for key,spine in ax.spines.items(): #@UnusedVariable
+# 			spine.set_visible(False)
+		ax.spines['right'].set_visible(False)
+		ax.spines['top'].set_visible(False)
 		
 		plt.ylabel('Ave. Aera Per Ion')
 		plt.xlabel('Sample Injections')
 		plt.title('Tracking Area Per Ion via Detector Measurement\nOver ~48 Hours of Continuous Sample Acquisition')
 
 # 		plt.tick_params(bottom="off", top="off", left="off", right="off")
-		legend_h_offset, legend_v_offset = 1.25, 0.85
+		legend_h_offset, legend_v_offset = 1.25, 0.75
 		plt.legend(loc='center right', bbox_to_anchor=(legend_h_offset, legend_v_offset))
-		plt.savefig('test', bbox_inches='tight')
+		plt.savefig('DM_API_Analysis', bbox_inches='tight')
 		plt.show()
+		
+		

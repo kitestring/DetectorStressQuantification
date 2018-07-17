@@ -176,7 +176,7 @@ class Postgres():
                 SUM(Ending_GO_API) AS Ending_GO_API
             FROM GO_IonStats_Start_End_Separated
             GROUP BY Inst, Offset_volts, SetName
-            ORDER BY Offset_volts, Inst ASC;
+            ORDER BY Inst, Offset_volts ASC;
         """
         
         return pd.read_sql_query(sql_statement, self.conn_psql)
