@@ -24,8 +24,8 @@ class Controls():
 			'ostat': [self.getOFNIonStats, 'Generate OFN Ion Stats data visualizations'],
 			'algo': [self.getAlkaneGOIonStats, "Generate Alkane GO Ion Stats data visualizations"],
 			'aldm': [self.getAlkaneDMIonStats, "Generate Alkane DM Ion Stats data visualizations"],
-			'o200': [self.getOFN200fgResults, "Generate OFN 200fg data visualizations"],
-			'14_5': [self.getC14_500fgResults, "Generate C14 500fg data visualizations"]
+			'acp': [self.initialize_AnalyteCombinedPlotResults, "Generate Analyte combined single plot data visualizations"],
+			'asp': [self.getAnalyteIndividualPlotsResults, "Analyte Single plots data visualizations"]
 			}
 		
 		self.runProgram = True
@@ -132,79 +132,118 @@ class Controls():
 		ofn_linearity_df = self.db.OFNLinearityData()
 		self.printDataStructure(ofn_linearity_df)
 		self.DataFrameToCSV(ofn_linearity_df, 'OFN_Linearity_Results', True)
+
+	def getAnalyteIndividualPlotsResults(self):
+		conc_pg = 0.5
+		
+		Analyte_tup = ('OFN','Perfluoronaphthalene')
+		Analyte_id = 'OFN'
+		Quant_Masses = 'Quant Mass = 271.99'
+		
+		Analyte_tup =  ('Tetradecane','Tetradecane (C14)')
+		Analyte_id = 'Tetradecane'
+		Quant_Masses = 'Quant Masses = SUM(57.07, 71.09, 81.10)'
+		
+		file_prefix = '{a}_{c}pg'.format(a=Analyte_id,c=conc_pg)
 	
-	def getOFN200fgResults(self):
-		OFN200fgResults = self.db.OFN_200fg_Results()
-		OFN200fgResults.fillna(0,inplace=True)
-		self.printDataStructure(OFN200fgResults)
-		self.DataFrameToCSV(OFN200fgResults, 'OFN_200fg_Results', True)
+		AnalyteResults = self.db.Analyte_SingleConcentration_Results(conc_pg, Analyte_tup)
+		AnalyteResults.fillna(0,inplace=True)
+		self.printDataStructure(AnalyteResults)
+		self.DataFrameToCSV(AnalyteResults, file_prefix + "_TabulatedResults", True)
 		
+		# X-axis data & label and legend labels for all plots
 		plot_builder = Plotter()
-		
-		x_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['det_offset'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['det_offset'].tolist()]
+		x_data = [AnalyteResults[AnalyteResults['inst'] == 'PV1']['det_offset'].tolist(), AnalyteResults[AnalyteResults['inst'] == 'PV2']['det_offset'].tolist()]
 		legendlbl_lst = ['Peg BT - PV1','Peg BT - PV2']
 		xlbl = 'Optimized Detector Voltage Offset (volts)'
+		
+		# Y-axis data & label, pngfile name, and chart title for each plot
+		df_columns = ['ave_area', 'ave_height', 'ave_quant_sn', 'ave_similarity']
+		plot_titles = ['Average Area', 'Average Height', 'Average Quant S/N', 'Average Similarity']
+		png_filename_suffix = ['_Area_Plot', '_Height_Plot', '_Quant_SN_Plot', '_Similarity_Plot']
+		dp_type = ['Target Analyte Finding', 'Target Analyte Finding', 'Target Analyte Finding', 'Non-Targeted Deconvolution']
+		
+		# Iterate to make each of the 4 plot types (Area, Height, Quant S/N, & Similarity)
+		for i in range(4):
+			y_data = [AnalyteResults[AnalyteResults['inst'] == 'PV1'][df_columns[i]].tolist(), AnalyteResults[AnalyteResults['inst'] == 'PV2'][df_columns[i]].tolist()]
+			ylbl = plot_titles[i]
+			plot_title = '{t} - {a} {c} pg\n{q}\n{d}'.format(t=plot_titles[i], a=Analyte_id, c=conc_pg, q=Quant_Masses, d=dp_type[i])
+			png_filename = (file_prefix + png_filename_suffix[i]).replace('.','_')
+			print('Building: ', png_filename)
+			plot_builder.GenericIndividualPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+		print('\nPlots complete')
 	
-		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_area'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_area'].tolist()]		
-		ylbl = 'Average Area'
-		plot_title = 'Area - OFN 200fg\nQuant Mass = 271.99\nTarget Analyte Finding'
-		png_filename = 'OFN_200fg_Area_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+	def initialize_AnalyteCombinedPlotResults(self):
+		analyte_dict = {
+			'OFN': [('Perfluoronaphthalene','OFN'),'OFN','Quant Mass = 271.99'],
+			'C14': [('Tetradecane','Tetradecane (C14)'),'Tetradecane', 'Quant Masses = SUM(57.07, 71.09, 81.10)'],
+			'C20': [('Eicosane','Eicosane (C20)'),'Eicosane', 'Quant Masses = SUM(57.07, 71.09, 81.10)'],
+			'C30': [('Triacontane','Triacontane (C30)'),'Triacontane', 'Quant Masses = SUM(57.07, 71.09, 81.10)']
+			}
+		selection_message = "Enter an integer which corresponds to your selection"
+		analyte_selection = self.getSingleSelection(selection_message, list(analyte_dict.keys()))
 		
-		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_height'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_height'].tolist()]		
-		ylbl = 'Average Height'
-		plot_title = 'Height - OFN 200fg\nQuant Mass = 271.99\nTarget Analyte Finding'
-		png_filename = 'OFN_200fg_Height_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
 		
-		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_quant_sn'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_quant_sn'].tolist()]		
-		ylbl = 'Average Quant S/N'
-		plot_title = 'Quant S/N - OFN 200fg\nQuant Mass = 271.99\nTarget Analyte Finding'
-		png_filename = 'OFN_200fg_Quant_SN_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		if analyte_selection == 'Invalid Selection':
+			self.giveUserFeedback("Invalid Selection\nAction Aborted")
+		else:
+			
+			unique_conc_lst = self.db.UniqueConcentrations(analyte_dict[analyte_selection][0][1])['concentration_pg'].tolist()
+			concentration_selection = self.getSingleSelection(selection_message, unique_conc_lst)
+			
+			if concentration_selection == 'Invalid Selection':
+				self.giveUserFeedback("Invalid Selection\nAction Aborted")
+			else:
+				self.getAnalyteCombinedPlotResults(concentration_selection, analyte_dict[analyte_selection])
 		
-		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_similarity'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_similarity'].tolist()]
-		y_data[0][1] = 632.3		
-		ylbl = 'Average Similarity'
-		plot_title = 'Similarity - OFN 200fg\nQuant Mass = 271.99\nNon-Targeted Deconvolution'
-		png_filename = 'OFN_200fg_Similarity_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+	def getAnalyteCombinedPlotResults(self, conc_pg, analyte_data):
+# 		conc_pg = 0.1000
+				
+# 		Analyte_tup = ('OFN','Perfluoronaphthalene')
+# 		Analyte_id = 'OFN'
+# 		Quant_Masses = 'Quant Mass = 271.99'
 		
-	def getC14_500fgResults(self):
-		C14_500fgResults = self.db.Tetradecane_500fg_results()
-		C14_500fgResults.fillna(0,inplace=True)
-		self.printDataStructure(C14_500fgResults)
-		self.DataFrameToCSV(C14_500fgResults, 'C14_500fg_Results', True)
+		Analyte_tup =  analyte_data[0]
+		Analyte_id = analyte_data[1]
+		Quant_Masses = analyte_data[2]
 		
+# 		Analyte_tup =  ('Eicosane','Eicosane (C20)')
+# 		Analyte_id = 'Eicosane'
+# 		Quant_Masses = 'Quant Masses = SUM(57.07, 71.09, 81.10)'
+
+# 		Analyte_tup =  ('Triacontane','Triacontane (C30)')
+# 		Analyte_id = 'Triacontane'
+# 		Quant_Masses = 'Quant Masses = SUM(57.07, 71.09, 81.10)'		
+		
+		file_prefix = '{a}_{c}pg'.format(a=Analyte_id,c=conc_pg)
+	
+		AnalyteResults = self.db.Analyte_SingleConcentration_Results(conc_pg, Analyte_tup)
+		AnalyteResults.fillna(0,inplace=True)
+		self.printDataStructure(AnalyteResults)
+		self.DataFrameToCSV(AnalyteResults, file_prefix + "_TabulatedResults", True)
+		
+		# X-axis data & label and legend labels for all plots
 		plot_builder = Plotter()
-		
-		x_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['det_offset'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['det_offset'].tolist()]
+		x_data = [AnalyteResults[AnalyteResults['inst'] == 'PV1']['det_offset'].tolist(), AnalyteResults[AnalyteResults['inst'] == 'PV2']['det_offset'].tolist()]
 		legendlbl_lst = ['Peg BT - PV1','Peg BT - PV2']
 		xlbl = 'Optimized Detector Voltage Offset (volts)'
-	
-		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_area'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_area'].tolist()]		
-		ylbl = 'Average Area'
-		plot_title = 'Area - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nTarget Analyte Finding'
-		png_filename = 'C14_500fg_Area_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
 		
-		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_height'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_height'].tolist()]		
-		ylbl = 'Average Height'
-		plot_title = 'Height - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nTarget Analyte Finding'
-		png_filename = 'C14_500fg_Height_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		# Y-axis data & label, pngfile name, and chart title for each plot
+		df_columns = ['ave_area', 'ave_height', 'ave_quant_sn', 'ave_similarity']
+		y_axis_lbls = ['Average Area', 'Average Height', 'Average Quant S/N', 'Average Similarity']
+		figure_title = '{a} {c} pg\n{q}'.format(a=Analyte_id, c=conc_pg, q=Quant_Masses)
+		png_filename = (file_prefix + "_plots").replace('.','_')
 		
-		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_quant_sn'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_quant_sn'].tolist()]		
-		ylbl = 'Average Quant S/N'
-		plot_title = 'Quant S/N - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nTarget Analyte Finding'
-		png_filename = 'C14_500fg_Quant_SN_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		# Initialize plot data structures
+		all_y_data = []
 		
-		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_similarity'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_similarity'].tolist()]		
-		ylbl = 'Average Similarity'
-		plot_title = 'Similarity - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nNon-Targeted Deconvolution'
-		png_filename = 'C14_500fg_Similarity_Plot'
-		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		# Iterate to make the data structures for each of the 4 plot types (Area, Height, Quant S/N, & Similarity)
+		for i in range(4):
+			all_y_data.append([AnalyteResults[AnalyteResults['inst'] == 'PV1'][df_columns[i]].tolist(), AnalyteResults[AnalyteResults['inst'] == 'PV2'][df_columns[i]].tolist()])
+			
+		plot_builder.GenericCombinedPlotMaker(x_data, all_y_data, legendlbl_lst, xlbl, y_axis_lbls, figure_title, png_filename)
+		
 		
 		
 	def getOFNSensitivityData(self):
@@ -261,6 +300,22 @@ class Controls():
 			method[0]()
 		else:
 			self.giveUserFeedback('Invalid Command\nFor a list of the commands type "help"')
+			
+	def getSingleSelection(self, selection_message, selectionLst):
+		# Allows the user to select an item by selecting a corresponding integer.
+		# Returns the selected item as a string, unless the selection is invalid, then "Invalid Selection" is returned
+		selection_dict = {}
+		for n, item in enumerate(selectionLst):
+			selection_dict[str(n)] = item
+			
+			
+		text = '\n%s\t%s' % ('No.', 'Selection')
+		for key, value in selection_dict.items():
+			text = text + '\n%s\t%s' % (key, value)
+		self.giveUserFeedback(text)
+		
+		selection = self.getRawUserInput(selection_message)
+		return selection_dict.get(selection, "Invalid Selection")	
 
 # create a new controls object and prompt the user with the welcome message
 # then populate with the program instructions			
