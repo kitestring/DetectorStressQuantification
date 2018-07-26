@@ -23,7 +23,9 @@ class Controls():
 			'olin': [self.getOFNLinearityData, 'Generate the OFN sensitivity plots and tables.'],
 			'ostat': [self.getOFNIonStats, 'Generate OFN Ion Stats data visualizations'],
 			'algo': [self.getAlkaneGOIonStats, "Generate Alkane GO Ion Stats data visualizations"],
-			'aldm': [self.getAlkaneDMIonStats, "Generate Alkane DM Ion Stats data visualizations"]
+			'aldm': [self.getAlkaneDMIonStats, "Generate Alkane DM Ion Stats data visualizations"],
+			'o200': [self.getOFN200fgResults, "Generate OFN 200fg data visualizations"],
+			'14_5': [self.getC14_500fgResults, "Generate C14 500fg data visualizations"]
 			}
 		
 		self.runProgram = True
@@ -130,6 +132,80 @@ class Controls():
 		ofn_linearity_df = self.db.OFNLinearityData()
 		self.printDataStructure(ofn_linearity_df)
 		self.DataFrameToCSV(ofn_linearity_df, 'OFN_Linearity_Results', True)
+	
+	def getOFN200fgResults(self):
+		OFN200fgResults = self.db.OFN_200fg_Results()
+		OFN200fgResults.fillna(0,inplace=True)
+		self.printDataStructure(OFN200fgResults)
+		self.DataFrameToCSV(OFN200fgResults, 'OFN_200fg_Results', True)
+		
+		plot_builder = Plotter()
+		
+		x_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['det_offset'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['det_offset'].tolist()]
+		legendlbl_lst = ['Peg BT - PV1','Peg BT - PV2']
+		xlbl = 'Optimized Detector Voltage Offset (volts)'
+	
+		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_area'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_area'].tolist()]		
+		ylbl = 'Average Area'
+		plot_title = 'Area - OFN 200fg\nQuant Mass = 271.99\nTarget Analyte Finding'
+		png_filename = 'OFN_200fg_Area_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_height'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_height'].tolist()]		
+		ylbl = 'Average Height'
+		plot_title = 'Height - OFN 200fg\nQuant Mass = 271.99\nTarget Analyte Finding'
+		png_filename = 'OFN_200fg_Height_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_quant_sn'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_quant_sn'].tolist()]		
+		ylbl = 'Average Quant S/N'
+		plot_title = 'Quant S/N - OFN 200fg\nQuant Mass = 271.99\nTarget Analyte Finding'
+		png_filename = 'OFN_200fg_Quant_SN_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+		y_data = [OFN200fgResults[OFN200fgResults['inst'] == 'PV1']['ave_similarity'].tolist(), OFN200fgResults[OFN200fgResults['inst'] == 'PV2']['ave_similarity'].tolist()]
+		y_data[0][1] = 632.3		
+		ylbl = 'Average Similarity'
+		plot_title = 'Similarity - OFN 200fg\nQuant Mass = 271.99\nNon-Targeted Deconvolution'
+		png_filename = 'OFN_200fg_Similarity_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+	def getC14_500fgResults(self):
+		C14_500fgResults = self.db.Tetradecane_500fg_results()
+		C14_500fgResults.fillna(0,inplace=True)
+		self.printDataStructure(C14_500fgResults)
+		self.DataFrameToCSV(C14_500fgResults, 'C14_500fg_Results', True)
+		
+		plot_builder = Plotter()
+		
+		x_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['det_offset'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['det_offset'].tolist()]
+		legendlbl_lst = ['Peg BT - PV1','Peg BT - PV2']
+		xlbl = 'Optimized Detector Voltage Offset (volts)'
+	
+		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_area'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_area'].tolist()]		
+		ylbl = 'Average Area'
+		plot_title = 'Area - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nTarget Analyte Finding'
+		png_filename = 'C14_500fg_Area_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_height'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_height'].tolist()]		
+		ylbl = 'Average Height'
+		plot_title = 'Height - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nTarget Analyte Finding'
+		png_filename = 'C14_500fg_Height_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_quant_sn'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_quant_sn'].tolist()]		
+		ylbl = 'Average Quant S/N'
+		plot_title = 'Quant S/N - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nTarget Analyte Finding'
+		png_filename = 'C14_500fg_Quant_SN_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
+		y_data = [C14_500fgResults[C14_500fgResults['inst'] == 'PV1']['ave_similarity'].tolist(), C14_500fgResults[C14_500fgResults['inst'] == 'PV2']['ave_similarity'].tolist()]		
+		ylbl = 'Average Similarity'
+		plot_title = 'Similarity - Tetradecane (C14) 500fg\nQuant Masses = SUM(57.07, 71.09, 81.10)\nNon-Targeted Deconvolution'
+		png_filename = 'C14_500fg_Similarity_Plot'
+		plot_builder.GenericPlotMaker(x_data, y_data, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.0, legend_v_offset=1.0)
+		
 		
 	def getOFNSensitivityData(self):
 		ofn_sensitivity_df = self.db.OFNSensitivityData_20fg()

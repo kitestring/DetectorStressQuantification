@@ -38,4 +38,27 @@ class Plotter():
 		plt.savefig('DM_API_Analysis', bbox_inches='tight')
 		plt.show()
 		
+	def GenericPlotMaker(self, xdata_lst, ydata_lst, legendlbl_lst, xlbl, ylbl, plot_title, png_filename, legend_h_offset=1.25, legend_v_offset=0.75, legend_location='center'):
+		# xdata & ydata: both are a list of lists each containing the corresponding axis data.  These are the requirement of these two
+			# data set to prevent an error:
+				# Sublists with the same index are a matching x vs y set that will be plotted.  They MUST be the same length to prevent an error.
+				# There must be the same number of sub lists to prevent an error.
+		# legendlbl_lst: a list of legend labels for each x vs y plot.  Again there must be the same number of items in this list as x/y pairs.
+		# The rest are self explainatory
+		fig = plt.figure(figsize=(15.5,9))
+		ax = fig.add_subplot(1,1,1)
+		
+		for i in range(len(xdata_lst)):
+			ax.plot(xdata_lst[i], ydata_lst[i], color=self.color_codes[i], label=legendlbl_lst[i])
+			
+		ax.spines['right'].set_visible(False)
+		ax.spines['top'].set_visible(False)
+		
+		plt.ylabel(ylbl)
+		plt.xlabel(xlbl)
+		plt.title(plot_title)
+
+		plt.legend(loc=legend_location, bbox_to_anchor=(legend_h_offset, legend_v_offset))
+		plt.savefig(png_filename, bbox_inches='tight')
+		# plt.show()
 		
