@@ -20,8 +20,96 @@ class Postgres():
         self.cur_psql.execute("SELECT * FROM IDL")
         IDL_id_row =  self.cur_psql.fetchall()
         print(IDL_id_row)
+        
+    def UniqueConcentrations(self, Analyte):
+        sql_statement = """
+            SELECT DISTINCT(Concentration_pg)
+            FROM PeakTable
+            WHERE Analyte = '%s'
+            Order By Concentration_pg ASC;
+        """ % Analyte
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
+        
+    def Analyte_SingleConcentration_Results(self, concentration_pg, Analyte_tup):
+        sql_statement = """
+            WITH Flatten_PeakTableData as (
+                SELECT
+                    DataSet.Instrument as Inst,
+                    MS_Method.DetectorOffset_Volts as Det_Offset,
+                    PeakTable.DataProcessingType as DP_Type,
+                    PeakTable.Concentration_pg as Conc,
+                    Case
+                        WHEN PeakTable.DataProcessingType = 'Unknown' THEN NULL
+                        ELSE PeakTable.Area
+                    END as Area,
+                    Case
+                        WHEN PeakTable.DataProcessingType = 'Unknown' THEN NULL
+                        ELSE PeakTable.Height 
+                    END as Height,
+                    Case
+                        WHEN PeakTable.DataProcessingType = 'Unknown' THEN NULL
+                        ELSE PeakTable.Quant_SN 
+                    END as Quant_SN,
+                    Case
+                        WHEN PeakTable.DataProcessingType = 'Target' THEN NULL
+                        ELSE PeakTable.similairity 
+                    END as Similarity
+                From PeakTable
+                Inner Join Sample ON Sample.Sample_id = PeakTable.Sample_id
+                Inner Join DataSet ON DataSet.DataSet_id = Sample.DataSet_id
+                Inner Join MS_Method ON MS_Method.MS_Method_id = DataSet.MS_Method_id
+                WHERE 
+                    PeakTable.Analyte IN %s
+                    AND
+                    PeakTable.Concentration_pg = '%s'
+            ),
+            
+            AVG_STDEV as (
+                SELECT 
+                    Inst,
+                    Det_Offset,
+                    AVG(Area) as Ave_Area,
+                    STDDEV(Area) as StdDev_Area,
+                    AVG(Height) as Ave_Height,
+                    STDDEV(Height) as StdDev_Height,
+                    AVG(Quant_SN) as Ave_Quant_SN,
+                    STDDEV(Quant_SN) as StdDev_Quant_SN,
+                    AVG(Similarity) as Ave_Similarity,
+                    STDDEV(Similarity) as StdDev_Similarity
+                FROM Flatten_PeakTableData
+                GROUP BY
+                    Inst,
+                    Det_Offset
+                ORDER BY
+                    Det_Offset,
+                    Inst ASC
+            )
+            
+            SELECT
+                Inst,
+                Det_Offset,
+                ROUND(Ave_Area,0) AS Ave_Area,
+                ROUND(StdDev_Area,0) AS StdDev_Area,
+                ROUND(StdDev_Area/Ave_Area * 100,2) AS RSD_Area,
+                ROUND(Ave_Height,0) AS Ave_Height,
+                ROUND(StdDev_Height,0) As StdDev_Height,
+                ROUND(StdDev_Height/Ave_Height * 100,2) AS RSD_Height,
+                ROUND(Ave_Quant_SN,2) as Ave_Quant_SN,
+                ROUND(StdDev_Quant_SN,3) as StdDev_Quant_SN,
+                ROUND(StdDev_Quant_SN/Ave_Quant_SN * 100,2) AS RSD_Quant_SN,
+                ROUND(Ave_Similarity,1) as Ave_Similarity,
+                ROUND(StdDev_Similarity,1) as StdDev_Similarity,
+                ROUND(StdDev_Similarity/Ave_Similarity * 100,2) AS RSD_Similarity
+            FROM AVG_STDEV
+            ORDER BY
+                Det_Offset,
+                Inst ASC;
+        """ % (Analyte_tup, concentration_pg)
+        
+        return pd.read_sql_query(sql_statement, self.conn_psql)
     
-    def OFN_200fg_Results(self):
+    def OFN_SingleConcentration_Results(self, concentration_pg):
         sql_statement = """
             WITH Flatten_C10_PeakTableData as (
                 SELECT
@@ -54,7 +142,7 @@ class Postgres():
                 WHERE 
                     PeakTable.Analyte IN ('OFN','Perfluoronaphthalene')
                     AND
-                    PeakTable.Concentration_pg = '0.2'
+                    PeakTable.Concentration_pg = '%s'
             ),
             
             C10_AVG_STDEV as (
@@ -97,7 +185,7 @@ class Postgres():
             ORDER BY
                 Det_Offset,
                 Inst ASC;
-        """
+        """ % concentration_pg
         return pd.read_sql_query(sql_statement, self.conn_psql)
         
     def Tetradecane_500fg_results(self):

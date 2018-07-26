@@ -7,6 +7,7 @@ Modules/developmental/
 RawData_Mirror.bat
 Modules/credentials.py
 txtFiles/
+Results/
 
 # Eclipse PyDev
 .metadata/
