@@ -1,15 +1,28 @@
-# SciData
+# DetectorStressQuantification
+
+### Application Dependencies
+1. Python 3.6.4
+1. Linux cinnamon 18.3
+1. pandas==0.22.0
+1. numpy==1.14.0
+1. matplotlib==2.1.2
+1. psycopg2==2.7.4
+1. os
+1. pprint
+1. datetime
+1. re
+1. math
 
 ### Application Description
-Extracts and cleanses flat data exported from a Chemical Analyzer instrument (Time of Flight Mass Spectrometer), then loads data into a SQL database using a Star schema.  A basic GUI is implemented to query SQL database to create data visualizations which describe instrument performance in a simple and digestible manner.  The following python libraries are utilized: numpy, pandas, matplotlib, sklearn, statistics, sqlite3, os, time, &amp; datetime.  Instance data is stored in JSON format in the dicts.txt text file.
+ETL flat data exported from a Chemical Analyzer instrument (TOF-MS).  While the data is still in memory data is cleansed and linked so that primary and foreign keys can be generated prior to loading into a Postgres managed database using a Snowflake schema.  A CLI is implemented to query the DB to generate customizable data visualizations.
 
 ### Command Line Interface (CLI) Example
-![GUI](https://github.com/kitestring/SciData/blob/master/SampleOutputs/GUI_Example.png)
+![CLI](https://github.com/kitestring/DetectorStressQuantification/blob/master/ExampleOutput/CLI_Example.png)
 
 ### To maintain confidentiality the data examples shown below are not “real” and are simulated data sets.
 
-### Spectral Quality Output Example
-![Data Set #1 Example](https://github.com/kitestring/SciData/blob/master/SampleOutputs/OFN_SpectralQuality.png)
+### Detector Measurement Ion Statistics Plot examle
+![Data Set #1 Example](https://github.com/kitestring/DetectorStressQuantification/blob/master/ExampleOutput/DM_API_Analysis.png)
 
-### System Linearity Output Example
-![Data Set #2 Example](https://github.com/kitestring/SciData/blob/master/SampleOutputs/OFN-QuantCurve.png)
+### System Performance vs Detector Voltage Offset
+![Data Set #2 Example](https://github.com/kitestring/DetectorStressQuantification/blob/master/ExampleOutput/Eicosane_5_0pg_plots.png)
