@@ -109,11 +109,15 @@ class Controls():
 		# Combine the reps versus concentration data and the average API & detector voltage data
 		# for each data set.
 		combined_df = df_cleaner.CombineAlkConcRepsAndDMIonStats(alk_InjectionReps_df.copy(), alk_ave_DM_df.copy())
+		
+		# correct combined_df['inst'] where is == 0
+		combined_df['inst'] = combined_df.apply(df_cleaner.CorrectInstrumentLbl, axis=1)
+		
 		self.VisualizeAlkDMIonStats(combined_df)
 		
 	def VisualizeAlkDMIonStats(self, df):
 		plot_builder = Plotter()
-		plot_builder.AlkDMIonStatsPlot(df)
+		plot_builder.AlkDMIonStatsSplitPlot(df)
 		
 	def getAlkaneGOIonStats(self):
 		alk_GO_ion_stats = self.db.AlkGOIonStats()
