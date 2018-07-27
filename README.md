@@ -22,7 +22,7 @@ ETL flat data exported from a Chemical Analyzer instrument (TOF-MS).  While the 
 ### To maintain confidentiality the data examples shown below are not “real” and are simulated data sets.
 
 ### Detector Measurement Ion Statistics Plot examle
-![Data Set #1 Example](https://github.com/kitestring/DetectorStressQuantification/blob/master/ExampleOutput/DM_API_Analysis.png)
+![Data Set #1 Example](https://github.com/kitestring/DetectorStressQuantification/blob/master/ExampleOutput/DM_API_Analysis_Upgraded.png)
 
 ### System Performance vs Detector Voltage Offset
 ![Data Set #2 Example](https://github.com/kitestring/DetectorStressQuantification/blob/master/ExampleOutput/Eicosane_5_0pg_plots.png)
