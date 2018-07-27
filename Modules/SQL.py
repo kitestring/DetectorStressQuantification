@@ -1,26 +1,18 @@
 import pandas as pd
 import psycopg2
+import sys
 
 class Postgres():
     
     def __init__(self, db_name, Postgres_user, Postgres_pw):
         
-        self.conn_psql = psycopg2.connect(dbname=db_name, user=Postgres_user, host="/tmp/", password=Postgres_pw)
+        if sys.platform == 'win32':
+            self.conn_psql = psycopg2.connect(dbname=db_name, user=Postgres_user, host='localhost', password=Postgres_pw, port='5432')
+        elif sys.platform == 'linux':
+            self.conn_psql = psycopg2.connect(dbname=db_name, user=Postgres_user, host="/tmp/", password=Postgres_pw)
+        
         self.cur_psql= self.conn_psql.cursor()
     
-    def DataUploadTest(self):
-        table = 'IDL'
-#         row = ("DEFAULT", 0.415, 0.002)
-        self.cur_psql.execute("INSERT INTO %s VALUES (DEFAULT, %s) RETURNING %s;" % (table, '0.0415, 0.003', 'IDL_id'))
-        IDL_id_row =  self.cur_psql.fetchall()
-        return IDL_id_row[0][0]
-    
-    def QueryTest(self):
-        table = 'IDL' #@UnusedVariable
-        self.cur_psql.execute("SELECT * FROM IDL")
-        IDL_id_row =  self.cur_psql.fetchall()
-        print(IDL_id_row)
-        
     def UniqueConcentrations(self, Analyte):
         sql_statement = """
             SELECT DISTINCT(Concentration_pg)

@@ -1,5 +1,4 @@
 import pandas as pd #@UnusedImport
-import statistics #@UnusedImport
 import matplotlib.pyplot as plt
 import matplotlib #@UnusedImport
 import numpy as np #@UnusedImport
