@@ -6,6 +6,43 @@ import numpy as np #@UnusedImport
 class Plotter():
 	def __init__(self):
 		self.red_hex_code = '#ff0000'
+
+	def AlkDMIonStatsSplitPlot(self, df):
+		PV1_DataSets_lst = df[df['inst'] == 'PV1']['DataSet'].unique()
+		PV2_DataSets_lst = df[df['inst'] == 'PV2']['DataSet'].unique()
+		inst_sets = [PV1_DataSets_lst,PV2_DataSets_lst]
+		ax_title = ['Peg-BT PV1', 'Peg-BT PV2']
+		
+		
+		fig = plt.figure(figsize=(18,9))
+		ax1 = fig.add_subplot(1,2,1)
+		ax2 = fig.add_subplot(1,2,2)		
+		ax1.set_prop_cycle('color',plt.cm.spectral(np.linspace(0.1,0.9,4))) #@UndefinedVariable
+		ax2.set_prop_cycle('color',plt.cm.spectral(np.linspace(0.1,0.9,4))) #@UndefinedVariable
+		ax = [ax1,ax2]
+		
+		for a in range(2):
+			
+			ax[a].spines['right'].set_visible(False)
+			ax[a].spines['top'].set_visible(False)
+			ax[a].set_ylabel('Area Per Ion via Detector Measurement')
+			ax[a].set_xlabel('Alkane Standard\nSample Injection Count')
+			ax[a].set_title(ax_title[a])
+			
+			for dset in inst_sets[a]:
+				df_sliced = df[df['DataSet'] == dset].copy()
+				offset = df_sliced['offset_volts'].iloc[2]
+				dv = df_sliced['Det_Volts'].iloc[2]
+				curve_label = 'Offset: +{v} v = {d} v'.format(v=offset, d=dv)
+				ax[a].plot(df_sliced['Cumulative_Inj'], df_sliced['ave_api'], label=curve_label)
+				
+			ax[a].legend(loc='center', bbox_to_anchor=(0.17,-0.1))
+		
+		plt.suptitle('Tracking Area Per Ion via Detector Measurement\nOver ~48 Hours of Continuous Sample Acquisition', fontsize=14)
+		plt.savefig('DM_API_Analysis', bbox_inches='tight')
+		plt.show()
+
+
 	
 	def AlkDMIonStatsPlot(self, df):
 		DataSets_lst = df['DataSet'].unique()

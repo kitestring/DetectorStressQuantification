@@ -520,3 +520,13 @@ class Extract():
         combined_df.rename(index=str, columns={"detectorvoltage": "Det_Volts"}, inplace=True)
         
         return combined_df
+    
+    def CorrectInstrumentLbl(self,row):
+        
+        if row['inst'] == 0:
+            return row['DataSet'][-3:]
+        else: 
+            return row['inst']
+            
+        
+        
