@@ -2,7 +2,7 @@
 
 ### Application Dependencies
 1. Python 3.6.4
-1. Linux cinnamon 18.3
+1. Linux cinnamon 18.3 or Windows10 64 bit
 1. pandas==0.22.0
 1. numpy==1.14.0
 1. matplotlib==2.1.2
