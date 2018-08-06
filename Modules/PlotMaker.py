@@ -14,7 +14,7 @@ class Plotter():
 		ax_title = ['Peg-BT PV1', 'Peg-BT PV2']
 		
 		
-		fig = plt.figure(figsize=(18,9))
+		fig = plt.figure(figsize=(25,9))
 		ax1 = fig.add_subplot(1,2,1)
 		ax2 = fig.add_subplot(1,2,2)		
 		ax1.set_prop_cycle('color',plt.cm.spectral(np.linspace(0.1,0.9,4))) #@UndefinedVariable
@@ -38,7 +38,7 @@ class Plotter():
 				
 			ax[a].legend(loc='center', bbox_to_anchor=(0.17,-0.1))
 		
-		plt.suptitle('Tracking Area Per Ion via Detector Measurement\nOver ~48 Hours of Continuous Sample Acquisition', fontsize=14)
+# 		plt.suptitle('Tracking Area Per Ion via Detector Measurement\nOver ~48 Hours of Continuous Sample Acquisition', fontsize=14)
 		plt.savefig('DM_API_Analysis', bbox_inches='tight')
 		plt.show()
 
@@ -105,7 +105,7 @@ class Plotter():
 				# There must be the same number of sub lists to prevent an error.
 		# legendlbl_lst: a list of legend labels for each x vs y plot.  Again there must be the same number of items in this list as x/y pairs.
 		# The rest are self explainatory
-		fig = plt.figure(figsize=(18,9))
+		fig = plt.figure(figsize=(25,9))
 		ax = []
 		
 		for a in range(4):
@@ -126,6 +126,47 @@ class Plotter():
 					ax[a].spines['bottom'].set_visible(False)
 					ax[a].xaxis.set_ticks_position('none')
 					
-		plt.suptitle(fig_title, fontsize=16)
+		plt.suptitle(fig_title, fontsize=20)
 		plt.legend(loc=legend_location, bbox_to_anchor=(legend_h_offset, legend_v_offset))
 		plt.savefig(png_filename, bbox_inches='tight')
+		
+	def Manual_OFN20fg_IDL(self):
+		fig = plt.figure(figsize=(25,9))
+		ax = fig.add_subplot(1,1,1)
+		ax.set_prop_cycle('color',plt.cm.spectral(np.linspace(0.25,0.84,2))) #@UndefinedVariable
+		
+		xdata = [0,150,250,350]
+		ydata = [[0.036614, 0.009674, 0.0056418, 0.004696],[0.0083151, 0.0044855, 0.0046082, 0.0033099]]
+		legendlbl_lst = ['Peg BT - PV1', 'Peg BT - PV2']
+		
+		for s in range(len(ydata)):
+			ax.plot(xdata, ydata[s], label=legendlbl_lst[s])
+			
+		ax.spines['right'].set_visible(False)
+		ax.spines['top'].set_visible(False)
+		ax.set_ylabel('IDL pg')
+		ax.set_xlabel('Optimized Detector Voltage Offset (volts)')
+		plt.legend()
+		plt.suptitle('IDL vs Detector Voltage Offset\nOFN 0.02 pg On Column\nQuant Mass = 271.99', fontsize=20)
+		plt.savefig('OFN_20fg_IDL_Plot', bbox_inches='tight')
+		
+	def Manual_GO_Plot(self):
+		fig = plt.figure(figsize=(25,9))
+		ax = fig.add_subplot(1,1,1)
+		ax.set_prop_cycle('color',plt.cm.spectral(np.linspace(0.25,0.84,2))) #@UndefinedVariable
+		
+		xdata = [0,150,250,350]
+		ydata = [[-7.7, 26.5, 42.8, 66.1],[-8, 4.1, 13.5, 48.4]]
+		legendlbl_lst = ['Peg BT - PV1', 'Peg BT - PV2']
+		
+		for s in range(len(ydata)):
+			ax.plot(xdata, ydata[s], label=legendlbl_lst[s])
+			
+		ax.spines['right'].set_visible(False)
+		ax.spines['top'].set_visible(False)
+		ax.set_ylabel('Change in Optimized Detector Voltage')
+		ax.set_xlabel('Optimized Detector Voltage Offset (volts)')
+		plt.legend()
+# 		plt.suptitle('Change in Optimized Detector Voltage\nFrom the Beginning to the End of a Data Set', fontsize=20)
+		plt.savefig('GO_Delta_Plot', bbox_inches='tight')
+		plt.show()
