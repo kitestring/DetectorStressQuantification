@@ -25,7 +25,9 @@ class Controls():
 			'algo': [self.getAlkaneGOIonStats, "Generate Alkane GO Ion Stats data visualizations"],
 			'aldm': [self.getAlkaneDMIonStats, "Generate Alkane DM Ion Stats data visualizations"],
 			'acp': [self.initialize_AnalyteCombinedPlotResults, "Generate Analyte combined single plot data visualizations"],
-			'asp': [self.getAnalyteIndividualPlotsResults, "Analyte Single plots data visualizations"]
+			'asp': [self.getAnalyteIndividualPlotsResults, "Analyte Single plots data visualizations"],
+			'idl': [self.makeManualOFNIDLPlot, "Make manual OFN IDL plot"],
+			'go': [self.makeGODeltaPlot, "Make GO delta plot"]
 			}
 		
 		self.runProgram = True
@@ -72,6 +74,14 @@ class Controls():
 		
 		return commandString
 	
+	def makeGODeltaPlot(self):
+		plot_builder = Plotter()
+		plot_builder.Manual_GO_Plot()
+	
+	def makeManualOFNIDLPlot(self):
+		plot_builder = Plotter()
+		plot_builder.Manual_OFN20fg_IDL()
+	
 	def getAlkaneDMIonStats(self):
 		# Get the reps versus concentration data
 		alk_InjectionReps_df = self.db.AlkInjectionReps()
@@ -113,6 +123,7 @@ class Controls():
 		# correct combined_df['inst'] where is == 0
 		combined_df['inst'] = combined_df.apply(df_cleaner.CorrectInstrumentLbl, axis=1)
 		
+		self.DataFrameToCSV(combined_df, 'DM_API_Analysis', False)
 		self.VisualizeAlkDMIonStats(combined_df)
 		
 	def VisualizeAlkDMIonStats(self, df):
