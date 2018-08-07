@@ -17,7 +17,7 @@
 ETL flat data exported from a Chemical Analyzer instrument (TOF-MS).  While the data is still in memory data is cleansed and linked so that primary and foreign keys can be generated prior to loading into a Postgres managed database using a Snowflake schema.  A CLI is implemented to query the DB to generate customizable data visualizations.
 
 ### Database Schema
-![Schema](https://github.com/kitestring/DetectorStressQuantification/blob/master/DB_Setup/DetectorStress_Schema.png)
+![Schema](https://github.com/kitestring/DetectorStressQuantification/blob/master/DB_Setup/DetectorStress_Schema.svg)
 
 ### Command Line Interface (CLI) Example
 ![CLI](https://github.com/kitestring/DetectorStressQuantification/blob/master/ExampleOutput/CLI_Example.png)
